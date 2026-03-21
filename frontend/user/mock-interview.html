@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Mock Interview — HireWalk</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-brand">🚀 <span>HireWalk</span></div>
+  <div class="nav-links">
+    <button class="nav-btn outline" onclick="location.href='browse.html'">Browse</button>
+    <button class="nav-btn outline" onclick="location.href='dashboard.html'">My Bookings</button>
+    <button class="nav-btn solid"   onclick="Auth.logout()">Logout</button>
+  </div>
+</nav>
+
+<div style="padding:16px 20px;max-width:860px;margin:0 auto">
+  <div class="chat-wrapper">
+
+    <div class="chat-header">
+      <div class="chat-avatar">AI</div>
+      <div>
+        <h3>AI Mock Interviewer</h3>
+        <p>Powered by Groq LLaMA — Ask questions, get feedback</p>
+      </div>
+      <button id="reset-btn" onclick="resetChat()"
+        style="margin-left:auto;background:rgba(255,255,255,.15);border:none;color:#fff;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:.8rem;font-weight:600">
+        🔄 Reset
+      </button>
+    </div>
+
+    <div class="chat-messages" id="chat-messages">
+      <!-- Messages rendered here -->
+    </div>
+
+    <div class="chat-input-area">
+      <textarea
+        class="chat-input"
+        id="user-input"
+        placeholder="Type your answer here... (Enter to send, Shift+Enter for newline)"
+        rows="1"
+        onkeydown="handleKey(event)"
+        oninput="autoResize(this)"
+      ></textarea>
+      <button class="chat-send" id="send-btn" onclick="sendMessage()">➤</button>
+    </div>
+
+  </div>
+</div>
+
+<script src="../js/api.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+  Auth.requireAuth('user');
+
+  let messages = [];
+  let isLoading = false;
+
+  function timeNow() {
+    return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function addMessage(role, content) {
+    messages.push({ role, content });
+    renderMessage(role, content);
+  }
+
+  function renderMessage(role, content) {
+    const container = document.getElementById('chat-messages');
+    const div = document.createElement('div');
+    div.className = `msg ${role === 'assistant' ? 'ai' : 'user'}`;
+    div.innerHTML = `
+      <div class="msg-bubble">${escapeHtml(content)}</div>
+      <div class="msg-time">${timeNow()}</div>
+    `;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function addTypingIndicator() {
+    const container = document.getElementById('chat-messages');
+    const div = document.createElement('div');
+    div.className = 'msg ai';
+    div.id = 'typing-indicator';
+    div.innerHTML = `
+      <div class="msg-bubble" style="display:flex;align-items:center;gap:6px;padding:14px 18px">
+        <span style="animation:blink 1s infinite .0s;width:8px;height:8px;background:var(--accent);border-radius:50%;display:inline-block"></span>
+        <span style="animation:blink 1s infinite .2s;width:8px;height:8px;background:var(--accent);border-radius:50%;display:inline-block"></span>
+        <span style="animation:blink 1s infinite .4s;width:8px;height:8px;background:var(--accent);border-radius:50%;display:inline-block"></span>
+      </div>`;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function removeTypingIndicator() {
+    document.getElementById('typing-indicator')?.remove();
+  }
+
+  function escapeHtml(text) {
+    return text
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/\n/g, '<br>');
+  }
+
+  async function startSession() {
+    const container = document.getElementById('chat-messages');
+    container.innerHTML = '';
+    messages = [];
+    isLoading = true;
+    setInputState(false);
+    addTypingIndicator();
+    try {
+      const res = await Api.mockChat([]);
+      removeTypingIndicator();
+      addMessage('assistant', res.message);
+    } catch (err) {
+      removeTypingIndicator();
+      renderMessage('assistant', '⚠️ Failed to connect to AI service. Check your API key and try again.');
+    }
+    isLoading = false;
+    setInputState(true);
+  }
+
+  async function sendMessage() {
+    const input   = document.getElementById('user-input');
+    const text    = input.value.trim();
+    if (!text || isLoading) return;
+
+    input.value = '';
+    input.style.height = 'auto';
+    addMessage('user', text);
+    isLoading = true;
+    setInputState(false);
+    addTypingIndicator();
+
+    try {
+      const res = await Api.mockChat(messages);
+      removeTypingIndicator();
+      addMessage('assistant', res.message);
+    } catch (err) {
+      removeTypingIndicator();
+      renderMessage('assistant', `⚠️ Error: ${err.message}`);
+    }
+    isLoading = false;
+    setInputState(true);
+    document.getElementById('user-input').focus();
+  }
+
+  function resetChat() {
+    if (!confirm('Start a new mock interview session?')) return;
+    startSession();
+  }
+
+  function setInputState(enabled) {
+    document.getElementById('send-btn').disabled = !enabled;
+    document.getElementById('user-input').disabled = !enabled;
+  }
+
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  }
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+  }
+
+  // Add blink keyframe
+  const style = document.createElement('style');
+  style.textContent = `@keyframes blink { 0%,80%,100%{opacity:.2} 40%{opacity:1} }`;
+  document.head.appendChild(style);
+
+  startSession();
+</script>
+</body>
+</html>

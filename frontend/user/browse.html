@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Browse Interviews — HireWalk</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <style>
+    .search-bar {
+      display: flex; gap: 12px; margin-bottom: 28px; flex-wrap: wrap;
+    }
+    .search-bar input {
+      flex: 1; min-width: 220px;
+      padding: 11px 16px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-size: .95rem;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .search-bar input:focus { border-color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-brand">🚀 <span>HireWalk</span></div>
+  <div class="nav-links" id="nav-right"></div>
+</nav>
+
+<div class="page">
+  <div class="page-header">
+    <div><h1>Browse Walk-in Interviews</h1><p>Find and book your next interview slot</p></div>
+    <button class="btn btn-primary" onclick="location.href='mock-interview.html'">🤖 AI Mock Interview</button>
+  </div>
+
+  <!-- Active Booking Banner -->
+  <div id="active-banner"></div>
+
+  <div class="search-bar">
+    <input id="search" placeholder="🔍 Search role or company..." oninput="filterCards()" />
+  </div>
+
+  <div id="interviews-grid">
+    <div style="text-align:center;padding:60px;color:var(--muted)">
+      <span class="spinner" style="border-top-color:var(--primary);width:32px;height:32px"></span>
+      <p style="margin-top:12px">Loading interviews...</p>
+    </div>
+  </div>
+</div>
+
+<!-- Booking Modal -->
+<div class="modal-overlay" id="book-modal">
+  <div class="modal">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h3>Book Interview Slot</h3>
+      <button onclick="closeModal()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--muted)">✕</button>
+    </div>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<script src="../js/api.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+  const user = Auth.get();
+  Auth.requireAuth('user');
+
+  document.getElementById('nav-right').innerHTML = `
+    <button class="nav-btn outline" onclick="location.href='dashboard.html'">My Bookings</button>
+    <button class="nav-btn outline" onclick="location.href='mock-interview.html'">🤖 Mock AI</button>
+    <span style="color:rgba(255,255,255,.7);font-size:.875rem">Hi, ${user?.name?.split(' ')[0]}</span>
+    <button class="nav-btn solid" onclick="Auth.logout()">Logout</button>
+  `;
+
+  let allInterviews = [];
+  let activeBooking = null;
+
+  async function load() {
+    try {
+      const [{ interviews }, { bookings }] = await Promise.all([
+        Api.getInterviews(),
+        Api.myBookings()
+      ]);
+
+      allInterviews = interviews;
+      activeBooking = bookings.find(b => b.status === 'confirmed' && new Date(b.interview_date) >= new Date());
+
+      if (activeBooking) {
+        document.getElementById('active-banner').innerHTML = `
+          <div class="booking-banner">
+            <span style="font-size:1.3rem">⚠️</span>
+            <p>You have an active booking: <strong>${activeBooking.role}</strong> at <strong>${activeBooking.company_name}</strong> on ${activeBooking.interview_date}. Cancel it to book a new slot.</p>
+            <button class="btn btn-danger btn-sm" style="flex-shrink:0" onclick="location.href='dashboard.html'">View Booking</button>
+          </div>`;
+      }
+
+      renderCards(interviews);
+    } catch (err) {
+      document.getElementById('interviews-grid').innerHTML = `<div class="alert alert-error">⚠️ ${err.message}</div>`;
+    }
+  }
+
+  function renderCards(list) {
+    const grid = document.getElementById('interviews-grid');
+    if (!list.length) {
+      grid.innerHTML = `<div class="empty-state"><div class="icon">📭</div><h3>No interviews available</h3><p>Check back later for new walk-in opportunities</p></div>`;
+      return;
+    }
+    grid.innerHTML = `<div class="grid-2">${list.map(renderCard).join('')}</div>`;
+  }
+
+  function renderCard(i) {
+    const availableSlots = i.slots?.filter(s => s.booked_count < s.total_capacity) || [];
+    const allFull = availableSlots.length === 0;
+    return `
+      <div class="card interview-card">
+        <div class="card-top">
+          <p class="company">🏢 ${i.company_name}</p>
+          <p class="role">${i.role}</p>
+          <div>
+            <span class="tag tag-blue">💰 ${i.package}</span>
+            <span class="tag tag-white">📅 ${i.interview_date}</span>
+            ${i.location ? `<span class="tag tag-white">📍 ${i.location}</span>` : ''}
+          </div>
+        </div>
+        <div class="card-details">
+          <p style="font-size:.85rem;color:var(--muted);margin-bottom:12px;line-height:1.5">
+            ${i.job_description?.substring(0, 120)}${i.job_description?.length > 120 ? '...' : ''}
+          </p>
+          <div class="detail-row">👥 <span>${i.candidates_required} candidates needed</span></div>
+          <div class="detail-row">🕒 <span>${i.slots?.length || 0} time slots · ${availableSlots.length} available</span></div>
+          <div style="margin-top:14px">
+            ${allFull
+              ? `<button class="btn btn-white btn-sm" style="color:var(--muted)" disabled>All Slots Full</button>`
+              : `<button class="btn btn-primary btn-sm" onclick="openBookModal(${JSON.stringify(i).replace(/"/g, '&quot;')})">Book Slot →</button>`
+            }
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function filterCards() {
+    const q = document.getElementById('search').value.toLowerCase();
+    const filtered = allInterviews.filter(i =>
+      i.role.toLowerCase().includes(q) ||
+      i.company_name.toLowerCase().includes(q)
+    );
+    renderCards(filtered);
+  }
+
+  let selectedSlot = null;
+  let currentInterview = null;
+
+  function openBookModal(interview) {
+    currentInterview = interview;
+    selectedSlot = null;
+    const modal = document.getElementById('book-modal');
+    const content = document.getElementById('modal-content');
+
+    const availableSlots = interview.slots?.filter(s => s.booked_count < s.total_capacity) || [];
+
+    content.innerHTML = `
+      <div id="book-alert"></div>
+      <p style="color:var(--muted);font-size:.875rem;margin-bottom:16px"><strong>${interview.company_name}</strong> — ${interview.role}</p>
+      <p style="font-size:.875rem;font-weight:600;margin-bottom:10px">Select a time slot:</p>
+      <div class="slots-grid" id="slots-grid">
+        ${availableSlots.map(s => `
+          <button class="slot-btn" data-id="${s.id}" onclick="selectSlot(this, ${s.id})">
+            ${s.slot_time}
+            <br><small style="opacity:.7">${s.total_capacity - s.booked_count} left</small>
+          </button>
+        `).join('')}
+      </div>
+      <div style="margin-top:20px;display:flex;gap:10px">
+        <button class="btn btn-primary" id="confirm-btn" onclick="confirmBooking()">Confirm Booking</button>
+        <button class="btn btn-white" style="color:var(--muted)" onclick="closeModal()">Cancel</button>
+      </div>
+    `;
+    modal.classList.add('active');
+  }
+
+  function selectSlot(el, slotId) {
+    document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedSlot = slotId;
+  }
+
+  function closeModal() {
+    document.getElementById('book-modal').classList.remove('active');
+  }
+
+  async function confirmBooking() {
+    if (!selectedSlot) return showAlert(document.getElementById('book-alert'), 'Please select a slot');
+    if (activeBooking) return showAlert(document.getElementById('book-alert'), 'Cancel your active booking first');
+
+    const btn = document.getElementById('confirm-btn');
+    setLoading(btn, true, 'Booking...');
+    try {
+      await Api.book({ interview_id: currentInterview.id, slot_id: selectedSlot });
+      closeModal();
+      showAlert(document.querySelector('#active-banner') || document.body, '✅ Booking confirmed! Check your email.', 'success');
+      load();
+    } catch (err) {
+      showAlert(document.getElementById('book-alert'), err.message);
+    } finally {
+      setLoading(btn, false);
+    }
+  }
+
+  load();
+</script>
+</body>
+</html>

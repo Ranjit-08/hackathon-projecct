@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Bookings — HireWalk</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+<nav class="navbar">
+  <div class="nav-brand">🚀 <span>HireWalk</span></div>
+  <div class="nav-links" id="nav-right"></div>
+</nav>
+
+<div class="page" id="main">
+  <div style="text-align:center;padding:60px;color:var(--muted)">
+    <span class="spinner" style="border-top-color:var(--primary);width:32px;height:32px"></span>
+    <p style="margin-top:12px">Loading...</p>
+  </div>
+</div>
+
+<script src="../js/api.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+  const user = Auth.get();
+  Auth.requireAuth('user');
+
+  document.getElementById('nav-right').innerHTML = `
+    <button class="nav-btn outline" onclick="location.href='browse.html'">Browse</button>
+    <button class="nav-btn outline" onclick="location.href='mock-interview.html'">🤖 Mock AI</button>
+    <span style="color:rgba(255,255,255,.7);font-size:.875rem">👤 ${user?.name}</span>
+    <button class="nav-btn solid" onclick="Auth.logout()">Logout</button>
+  `;
+
+  async function load() {
+    const main = document.getElementById('main');
+    try {
+      const { bookings } = await Api.myBookings();
+      const active    = bookings.filter(b => b.status === 'confirmed');
+      const cancelled = bookings.filter(b => b.status === 'cancelled');
+      const completed = bookings.filter(b => b.status === 'completed');
+
+      main.innerHTML = `
+        <div class="page-header">
+          <div><h1>My Bookings</h1><p>Track and manage your interview slots</p></div>
+          <button class="btn btn-primary" onclick="location.href='browse.html'">Browse Interviews</button>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value">${bookings.length}</div>
+            <div class="stat-label">Total Bookings</div>
+          </div>
+          <div class="stat-card" style="border-color:var(--success)">
+            <div class="stat-value">${active.length}</div>
+            <div class="stat-label">Active</div>
+          </div>
+          <div class="stat-card" style="border-color:var(--danger)">
+            <div class="stat-value">${cancelled.length}</div>
+            <div class="stat-label">Cancelled</div>
+          </div>
+        </div>
+
+        ${active.length ? `
+          <h2 style="font-size:1.15rem;font-weight:700;color:var(--primary);margin-bottom:16px">📌 Active Booking</h2>
+          ${active.map(renderBookingCard).join('')}
+          <div style="margin-bottom:32px"></div>
+        ` : ''}
+
+        <h2 style="font-size:1.15rem;font-weight:700;color:var(--primary);margin-bottom:16px">📋 Booking History</h2>
+        ${bookings.length === 0
+          ? `<div class="empty-state"><div class="icon">📭</div><h3>No bookings yet</h3><p>Browse interviews and book your first slot</p><br><button class="btn btn-primary" onclick="location.href='browse.html'">Browse Interviews</button></div>`
+          : bookings.filter(b => b.status !== 'confirmed').map(renderBookingCard).join('') || '<p style="color:var(--muted);padding:20px 0">No past bookings.</p>'
+        }
+      `;
+    } catch (err) {
+      main.innerHTML = `<div class="alert alert-error">⚠️ ${err.message}</div>`;
+    }
+  }
+
+  function renderBookingCard(b) {
+    const badgeMap = { confirmed: 'badge-success', cancelled: 'badge-danger', completed: 'badge-warning' };
+    return `
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-body">
+          <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:10px">
+            <div>
+              <h3 style="font-size:1.05rem;font-weight:700;color:var(--primary)">${b.role}</h3>
+              <p style="color:var(--muted);font-size:.875rem">🏢 ${b.company_name}</p>
+            </div>
+            <span class="badge ${badgeMap[b.status] || 'badge-muted'}">${b.status}</span>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:12px">
+            <div class="detail-row">📅 <span>${b.interview_date}</span></div>
+            <div class="detail-row">⏰ <span>${b.slot_time}</span></div>
+            <div class="detail-row">💰 <span>${b.package || '—'}</span></div>
+            ${b.location ? `<div class="detail-row">📍 <span>${b.location}</span></div>` : ''}
+          </div>
+          ${b.status === 'confirmed' ? `
+            <div style="margin-top:14px;display:flex;gap:8px">
+              <button class="btn btn-danger btn-sm" onclick="cancel(${b.id}, this)">Cancel Booking</button>
+              <button class="btn btn-primary btn-sm" onclick="location.href='mock-interview.html'">🤖 Practice Now</button>
+            </div>
+          ` : ''}
+        </div>
+      </div>`;
+  }
+
+  async function cancel(id, btn) {
+    if (!confirm('Cancel this booking?')) return;
+    setLoading(btn, true, 'Cancelling...');
+    try {
+      await Api.cancelBooking(id);
+      load();
+    } catch (err) {
+      alert(err.message);
+      setLoading(btn, false);
+    }
+  }
+
+  load();
+</script>
+</body>
+</html>

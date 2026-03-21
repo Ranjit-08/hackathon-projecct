@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Post Interview — HireWalk</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <style>
+    .slot-item { display:flex; align-items:center; gap:10px; padding:10px; background:var(--bg); border-radius:8px; margin-bottom:8px; }
+    .slot-item input { flex:1; }
+    .remove-slot { background:none; border:none; color:var(--danger); font-size:1.2rem; cursor:pointer; padding:4px; }
+  </style>
+</head>
+<body>
+<nav class="navbar">
+  <div class="nav-brand">🚀 <span>HireWalk</span></div>
+  <div class="nav-links">
+    <button class="nav-btn outline" onclick="location.href='dashboard.html'">← Dashboard</button>
+    <button class="nav-btn solid"   onclick="Auth.logout()">Logout</button>
+  </div>
+</nav>
+
+<div class="page" style="max-width:700px">
+  <div class="page-header">
+    <div><h1>Post Walk-in Interview</h1><p>Fill in the details for your walk-in drive</p></div>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <div id="alert-box"></div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Role / Position *</label>
+          <input class="form-control" id="role" placeholder="e.g. Software Engineer" />
+        </div>
+        <div class="form-group">
+          <label>Package (CTC) *</label>
+          <input class="form-control" id="package" placeholder="e.g. 8-12 LPA" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Job Description *</label>
+        <textarea class="form-control" id="jd" rows="4" placeholder="Describe the role, responsibilities, requirements..."></textarea>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Interview Date *</label>
+          <input class="form-control" id="date" type="date" />
+        </div>
+        <div class="form-group">
+          <label>Location</label>
+          <input class="form-control" id="location" placeholder="e.g. Hyderabad, Floor 3" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Candidates Required *</label>
+        <input class="form-control" id="candidates" type="number" min="1" placeholder="e.g. 20" />
+      </div>
+
+      <!-- Time Slots -->
+      <div class="form-group" style="margin-top:8px">
+        <label style="margin-bottom:12px;display:block">Time Slots *</label>
+        <div id="slots-container"></div>
+        <button type="button" class="btn btn-white btn-sm" style="color:var(--primary);border:1.5px solid var(--border)" onclick="addSlot()">
+          + Add Time Slot
+        </button>
+      </div>
+
+      <div style="margin-top:24px;display:flex;gap:12px">
+        <button class="btn btn-primary" id="submit-btn" onclick="submitInterview()">🚀 Post Interview</button>
+        <button class="btn btn-white" style="color:var(--muted)" onclick="location.href='dashboard.html'">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../js/api.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+  Auth.requireAuth('company');
+
+  // Set min date to today
+  document.getElementById('date').min = new Date().toISOString().split('T')[0];
+
+  let slotCount = 0;
+
+  function addSlot() {
+    slotCount++;
+    const div = document.createElement('div');
+    div.className = 'slot-item';
+    div.id = `slot-${slotCount}`;
+    div.innerHTML = `
+      <input class="form-control" placeholder="e.g. 10:00 AM - 11:00 AM" id="slot-time-${slotCount}" />
+      <input class="form-control" type="number" min="1" max="100" placeholder="Capacity" id="slot-cap-${slotCount}" style="max-width:110px" value="10" />
+      <button class="remove-slot" onclick="document.getElementById('slot-${slotCount}').remove()">✕</button>
+    `;
+    document.getElementById('slots-container').appendChild(div);
+  }
+
+  // Add first slot by default
+  addSlot();
+
+  async function submitInterview() {
+    const btn = document.getElementById('submit-btn');
+    const box = document.getElementById('alert-box');
+
+    const role       = document.getElementById('role').value.trim();
+    const pkg        = document.getElementById('package').value.trim();
+    const jd         = document.getElementById('jd').value.trim();
+    const date       = document.getElementById('date').value;
+    const location   = document.getElementById('location').value.trim();
+    const candidates = parseInt(document.getElementById('candidates').value);
+
+    if (!role || !pkg || !jd || !date || !candidates)
+      return showAlert(box, 'Please fill all required fields');
+
+    // Collect slots
+    const slots = [];
+    document.querySelectorAll('[id^="slot-time-"]').forEach(el => {
+      const id  = el.id.split('-')[2];
+      const time = el.value.trim();
+      const cap  = parseInt(document.getElementById(`slot-cap-${id}`)?.value || 10);
+      if (time) slots.push({ time, capacity: cap });
+    });
+
+    if (!slots.length)
+      return showAlert(box, 'Add at least one time slot');
+
+    setLoading(btn, true, 'Posting...');
+    try {
+      await Api.postInterview({
+        role, package: pkg, job_description: jd,
+        interview_date: date, location, candidates_required: candidates, slots
+      });
+      showAlert(box, 'Interview posted successfully!', 'success');
+      setTimeout(() => location.href = 'dashboard.html', 1000);
+    } catch (err) {
+      showAlert(box, err.message);
+    } finally {
+      setLoading(btn, false);
+    }
+  }
+</script>
+</body>
+</html>

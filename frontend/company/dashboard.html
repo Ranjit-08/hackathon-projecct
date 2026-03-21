@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Company Dashboard — HireWalk</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-brand">🚀 <span>HireWalk</span> <small style="color:rgba(255,255,255,.5);font-size:.75rem;margin-left:6px">Company</small></div>
+  <div class="nav-links" id="nav-right"></div>
+</nav>
+
+<div class="page" id="main">
+  <div style="text-align:center;padding:60px;color:var(--muted)">
+    <span class="spinner" style="border-color:rgba(30,58,95,.2);border-top-color:var(--primary);width:32px;height:32px;"></span>
+    <p style="margin-top:12px">Loading...</p>
+  </div>
+</div>
+
+<script src="../js/api.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+  const user = Auth.get();
+  if (!Auth.requireAuth('company')) {}
+
+  document.getElementById('nav-right').innerHTML = `
+    <span style="color:rgba(255,255,255,.8);font-size:.875rem">👤 ${user?.name}</span>
+    <button class="nav-btn outline" onclick="location.href='post.html'">+ Post Interview</button>
+    <button class="nav-btn solid"   onclick="Auth.logout()">Logout</button>
+  `;
+
+  async function load() {
+    const main = document.getElementById('main');
+    try {
+      const { interviews } = await Api.getCompanyInterviews();
+
+      const totalBookings = interviews.reduce((a, i) => a + (i.total_bookings || 0), 0);
+      const active = interviews.filter(i => i.status === 'active').length;
+
+      main.innerHTML = `
+        <div class="page-header">
+          <div><h1>Company Dashboard</h1><p>Welcome back, ${user.name}</p></div>
+          <button class="btn btn-primary" onclick="location.href='post.html'">+ Post Walk-in Interview</button>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value">${interviews.length}</div>
+            <div class="stat-label">Total Interviews Posted</div>
+          </div>
+          <div class="stat-card" style="border-color:var(--success)">
+            <div class="stat-value">${active}</div>
+            <div class="stat-label">Active Interviews</div>
+          </div>
+          <div class="stat-card" style="border-color:var(--warning)">
+            <div class="stat-value">${totalBookings}</div>
+            <div class="stat-label">Total Bookings</div>
+          </div>
+        </div>
+
+        <div class="page-header" style="margin-bottom:16px">
+          <h2 style="font-size:1.25rem;font-weight:700;color:var(--primary)">Your Interviews</h2>
+        </div>
+
+        ${interviews.length === 0 ? `
+          <div class="empty-state">
+            <div class="icon">📋</div>
+            <h3>No interviews posted yet</h3>
+            <p>Post your first walk-in interview to start receiving candidates</p>
+            <br>
+            <button class="btn btn-primary" onclick="location.href='post.html'">Post Interview</button>
+          </div>
+        ` : `
+          <div class="grid-2" id="interviews-grid">
+            ${interviews.map(renderInterviewCard).join('')}
+          </div>
+        `}
+      `;
+    } catch (err) {
+      main.innerHTML = `<div class="alert alert-error">⚠️ ${err.message}</div>`;
+    }
+  }
+
+  function renderInterviewCard(i) {
+    const statusBadge = i.status === 'active' ? 'badge-success' : 'badge-muted';
+    return `
+      <div class="card">
+        <div class="card-body">
+          <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:14px">
+            <div>
+              <h3 style="font-size:1.1rem;font-weight:700;color:var(--primary)">${i.role}</h3>
+              <p style="color:var(--muted);font-size:.85rem;margin-top:2px">📅 ${i.interview_date}</p>
+            </div>
+            <span class="badge ${statusBadge}">${i.status}</span>
+          </div>
+
+          <div class="detail-row">💰 <span>${i.package}</span></div>
+          <div class="detail-row">👥 <span>${i.total_bookings || 0} / ${i.candidates_required} booked</span></div>
+          <div class="detail-row">🕒 <span>${i.slots?.length || 0} time slots</span></div>
+
+          <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-primary btn-sm" onclick="viewBookings(${i.id})">View Bookings</button>
+            ${i.status === 'active' ? `<button class="btn btn-danger btn-sm" onclick="closeInterview(${i.id}, this)">Close</button>` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Modal for bookings list
+  async function viewBookings(interviewId) {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = `
+      <div class="modal" style="max-width:680px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <h3>Candidate Bookings</h3>
+          <button onclick="this.closest('.modal-overlay').remove()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--muted)">✕</button>
+        </div>
+        <div id="modal-body"><span class="spinner" style="border-top-color:var(--primary)"></span></div>
+      </div>`;
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => overlay.classList.add('active'));
+
+    try {
+      const { bookings } = await Api.interviewBookings(interviewId);
+      const body = document.getElementById('modal-body');
+      if (!bookings.length) {
+        body.innerHTML = '<p style="color:var(--muted);text-align:center;padding:20px">No bookings yet</p>';
+        return;
+      }
+      body.innerHTML = `
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Candidate</th><th>Email</th><th>Phone</th><th>Slot</th><th>Status</th></tr></thead>
+            <tbody>
+              ${bookings.map(b => `
+                <tr>
+                  <td><strong>${b.user_name}</strong></td>
+                  <td>${b.user_email}</td>
+                  <td>${b.user_phone || '—'}</td>
+                  <td>${b.slot_time}</td>
+                  <td><span class="badge ${b.status === 'confirmed' ? 'badge-success' : 'badge-muted'}">${b.status}</span></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>`;
+    } catch (err) {
+      document.getElementById('modal-body').innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+    }
+  }
+
+  async function closeInterview(id, btn) {
+    if (!confirm('Close this interview? No new bookings will be accepted.')) return;
+    try {
+      await Api.closeInterview(id);
+      load();
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HireWalk — Walk-in Interview Platform</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .portal-section { padding: 80px 20px; }
+    .portal-section h2 { text-align:center; font-size:2rem; font-weight:700; color:var(--primary); margin-bottom:8px; }
+    .portal-section .subtitle { text-align:center; color:var(--muted); margin-bottom:48px; }
+    .portal-grid { display:grid; grid-template-columns:1fr 1fr; gap:32px; max-width:900px; margin:0 auto; }
+    .portal-card { border-radius:20px; overflow:hidden; box-shadow:var(--shadow); transition:transform .25s, box-shadow .25s; }
+    .portal-card:hover { transform:translateY(-6px); box-shadow:0 16px 48px rgba(30,58,95,.18); }
+    .portal-card .portal-top { padding:40px; text-align:center; color:#fff; }
+    .portal-card.company .portal-top { background:linear-gradient(135deg,#1e3a5f,#2d5a9e); }
+    .portal-card.user    .portal-top { background:linear-gradient(135deg,#065f46,#059669); }
+    .portal-card .portal-icon { font-size:3rem; margin-bottom:12px; }
+    .portal-card h3 { font-size:1.4rem; font-weight:700; margin-bottom:8px; }
+    .portal-card p  { opacity:.85; font-size:.9rem; }
+    .portal-card .portal-btns { padding:24px; background:#fff; display:flex; gap:10px; justify-content:center; }
+    footer { background:var(--primary); color:rgba(255,255,255,.7); text-align:center; padding:24px; font-size:.875rem; }
+    @media(max-width:640px){ .portal-grid{grid-template-columns:1fr;} }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-brand">🚀 <span>HireWalk</span></div>
+  <div class="nav-links">
+    <button class="nav-btn outline" onclick="location.href='user/login.html'">Login</button>
+    <button class="nav-btn solid"   onclick="location.href='user/register.html'">Get Started</button>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-content">
+    <h1>Find Your Next <span>Walk-in Interview</span><br>Book. Prepare. Succeed.</h1>
+    <p>Connect with top companies, book your interview slot, and practice with our AI Mock Interviewer — all in one place.</p>
+    <div class="hero-btns">
+      <button class="btn btn-white" onclick="location.href='user/register.html'">🎯 Find Interviews</button>
+      <button class="btn btn-outline" onclick="location.href='company/register.html'">🏢 Post a Walk-in</button>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section class="features">
+  <div class="container">
+    <h2>Everything You Need</h2>
+    <p class="subtitle">A complete platform for walk-in interview discovery and preparation</p>
+    <div class="grid-3">
+      <div class="feature-card">
+        <span class="feature-icon">📋</span>
+        <h3>Browse Walk-ins</h3>
+        <p>Discover curated walk-in interviews from top companies across all domains.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">⚡</span>
+        <h3>Instant Booking</h3>
+        <p>Pick your time slot and confirm your interview booking in seconds.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">🤖</span>
+        <h3>AI Mock Interview</h3>
+        <p>Practice with our AI interviewer — get questions, feedback, and scoring.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">📧</span>
+        <h3>Email Confirmation</h3>
+        <p>Get instant email confirmation with all your booking details.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">🏢</span>
+        <h3>Company Portal</h3>
+        <p>Companies post walk-ins, manage slots, and track booked candidates.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">🔒</span>
+        <h3>Smart Constraints</h3>
+        <p>One active booking per user — no double-booking chaos.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Portals -->
+<section class="portal-section">
+  <h2>Choose Your Portal</h2>
+  <p class="subtitle">Different entry points for companies and candidates</p>
+  <div class="portal-grid">
+    <div class="portal-card company">
+      <div class="portal-top">
+        <div class="portal-icon">🏢</div>
+        <h3>Company Portal</h3>
+        <p>Post walk-in interviews, manage time slots and track applicants</p>
+      </div>
+      <div class="portal-btns">
+        <button class="btn btn-primary btn-sm" onclick="location.href='company/login.html'">Login</button>
+        <button class="btn btn-white   btn-sm" style="color:var(--primary)" onclick="location.href='company/register.html'">Register</button>
+      </div>
+    </div>
+    <div class="portal-card user">
+      <div class="portal-top">
+        <div class="portal-icon">🎯</div>
+        <h3>Candidate Portal</h3>
+        <p>Browse interviews, book slots and practice with AI mock interviews</p>
+      </div>
+      <div class="portal-btns">
+        <button class="btn btn-success btn-sm" onclick="location.href='user/login.html'">Login</button>
+        <button class="btn btn-white   btn-sm" style="color:#065f46" onclick="location.href='user/register.html'">Register</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>© 2025 HireWalk — Walk-in Interview Platform. Built on AWS ☁️</p>
+</footer>
+
+<script src="js/auth.js"></script>
+<script>
+  // Redirect if already logged in
+  const u = Auth.get();
+  if (u) {
+    document.querySelector('.nav-links').innerHTML = `
+      <span style="color:rgba(255,255,255,.7);font-size:.9rem">Hi, ${u.name}</span>
+      <button class="nav-btn solid" onclick="location.href='${u.role === 'company' ? 'company' : 'user'}/dashboard.html'">Dashboard</button>
+    `;
+  }
+</script>
+</body>
+</html>

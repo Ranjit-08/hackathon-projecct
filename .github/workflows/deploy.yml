@@ -1,0 +1,45 @@
+name: Deploy HireWalk to EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy to EC2
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Deploy to EC2 via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host:     ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key:      ${{ secrets.EC2_SSH_KEY }}
+          timeout:  120s
+          script: |
+            echo "====== Pulling latest code ======"
+            cd /home/ec2-user/hackathon-projecct
+            git pull origin main
+
+            echo "====== Installing dependencies ======"
+            cd backend
+            pip3 install -r requirements.txt -q
+
+            echo "====== Updating frontend ======"
+            sudo cp -r /home/ec2-user/hackathon-projecct/frontend/* /var/www/walkin-frontend/
+            sudo chown -R nginx:nginx /var/www/walkin-frontend
+
+            echo "====== Restarting services ======"
+            sudo systemctl restart walkin
+            sudo systemctl reload nginx
+
+            echo "====== Health Check ======"
+            sleep 3
+            curl -s http://localhost/api/health
+
+            echo "====== Deploy Complete ======"

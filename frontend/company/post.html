@@ -1,80 +1,582 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Post Interview — HireWalk</title>
-  <link rel="stylesheet" href="../css/style.css" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Post Walk-in Interview — HireWalk</title>
+  <link rel="stylesheet" href="../css/style.css"/>
   <style>
-    .slot-item { display:flex; align-items:center; gap:10px; padding:10px; background:var(--bg); border-radius:8px; margin-bottom:8px; }
-    .slot-item input { flex:1; }
-    .remove-slot { background:none; border:none; color:var(--danger); font-size:1.2rem; cursor:pointer; padding:4px; }
+    .post-layout {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 32px;
+      max-width: 1100px;
+      margin: 32px auto;
+      padding: 0 24px;
+      align-items: start;
+    }
+
+    /* ── Sidebar ── */
+    .post-sidebar {
+      position: sticky;
+      top: 84px;
+    }
+
+    .sidebar-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .sidebar-header {
+      background: linear-gradient(135deg, var(--primary), var(--primary-mid));
+      padding: 20px;
+      color: #fff;
+    }
+
+    .sidebar-header h3 {
+      font-family: var(--font-display);
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .sidebar-header p {
+      font-size: .75rem;
+      opacity: .7;
+    }
+
+    .step-list { padding: 8px 0; }
+
+    .step-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 20px;
+      font-size: .825rem;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all .18s;
+      border-left: 3px solid transparent;
+    }
+
+    .step-item.active {
+      color: var(--accent);
+      background: var(--accent-light);
+      border-left-color: var(--accent);
+      font-weight: 600;
+    }
+
+    .step-item.done {
+      color: var(--success);
+    }
+
+    .step-num {
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: .7rem;
+      font-weight: 700;
+      flex-shrink: 0;
+      transition: all .18s;
+    }
+
+    .step-item.active .step-num {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .step-item.done .step-num {
+      background: var(--success);
+      border-color: var(--success);
+      color: #fff;
+    }
+
+    /* ── Main Form ── */
+    .post-main {}
+
+    .section-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+
+    .section-block-header {
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border);
+      background: #fafbff;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .section-icon {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      background: var(--accent-light);
+      border: 1px solid #bfdbfe;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .section-block-header h3 {
+      font-family: var(--font-display);
+      font-size: .95rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .section-block-header p {
+      font-size: .775rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .section-block-body { padding: 24px; }
+
+    /* ── Slot Builder ── */
+    .slot-builder {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .slot-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 40px;
+      gap: 10px;
+      align-items: center;
+      padding: 14px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      transition: border-color .18s;
+      animation: slideIn .2s ease;
+    }
+
+    .slot-row:hover { border-color: var(--accent); }
+
+    .slot-row-label {
+      grid-column: 1 / -1;
+      font-size: .72rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    .slot-delete {
+      width: 32px; height: 32px;
+      background: none;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      color: var(--danger);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .18s;
+      flex-shrink: 0;
+    }
+
+    .slot-delete:hover {
+      background: #fee2e2;
+      border-color: var(--danger);
+    }
+
+    .add-slot-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      border: 1.5px dashed var(--border);
+      border-radius: var(--radius-sm);
+      background: none;
+      color: var(--accent);
+      font-size: .825rem;
+      font-weight: 600;
+      font-family: var(--font);
+      cursor: pointer;
+      transition: all .18s;
+      width: 100%;
+      justify-content: center;
+    }
+
+    .add-slot-btn:hover {
+      border-color: var(--accent);
+      background: var(--accent-light);
+    }
+
+    /* ── Requirements Tags ── */
+    .req-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+      min-height: 36px;
+    }
+
+    .req-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      background: var(--accent-light);
+      border: 1px solid #bfdbfe;
+      border-radius: 99px;
+      font-size: .775rem;
+      font-weight: 600;
+      color: var(--accent);
+      animation: tagIn .15s ease;
+    }
+
+    .req-tag button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--accent);
+      font-size: .9rem;
+      line-height: 1;
+      padding: 0;
+      opacity: .7;
+      transition: opacity .15s;
+    }
+    .req-tag button:hover { opacity: 1; }
+
+    @keyframes tagIn {
+      from { opacity: 0; transform: scale(.8); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+
+    /* ── Preview Card ── */
+    .preview-card {
+      background: linear-gradient(135deg, var(--primary), var(--primary-mid));
+      border-radius: var(--radius);
+      padding: 20px;
+      color: #fff;
+      margin-bottom: 20px;
+    }
+
+    .preview-card h4 {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .preview-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    /* ── Submit Area ── */
+    .submit-area {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 20px 24px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* ── Candidate Counter ── */
+    .counter-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      width: fit-content;
+    }
+
+    .counter-btn {
+      width: 38px; height: 42px;
+      background: var(--bg);
+      border: none;
+      font-size: 1.1rem;
+      cursor: pointer;
+      color: var(--text-mid);
+      transition: background .15s;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .counter-btn:hover { background: var(--border); }
+
+    .counter-val {
+      width: 60px;
+      text-align: center;
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--primary);
+      border: none;
+      outline: none;
+      font-family: var(--font-display);
+      background: #fff;
+      height: 42px;
+    }
+
+    @media (max-width: 768px) {
+      .post-layout { grid-template-columns: 1fr; }
+      .post-sidebar { display: none; }
+      .slot-row { grid-template-columns: 1fr 1fr 40px; }
+    }
   </style>
 </head>
 <body>
+
+<!-- Navbar -->
 <nav class="navbar">
-  <div class="nav-brand">🚀 <span>HireWalk</span></div>
+  <a class="nav-brand" href="../index.html">
+    <div class="nav-brand-icon">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round">
+        <path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
+        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+      </svg>
+    </div>
+    Hire<span>Walk</span>
+  </a>
   <div class="nav-links">
-    <button class="nav-btn outline" onclick="location.href='dashboard.html'">← Dashboard</button>
-    <button class="nav-btn solid"   onclick="Auth.logout()">Logout</button>
+    <button class="nav-btn ghost" onclick="location.href='dashboard.html'">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      Dashboard
+    </button>
+    <button class="nav-btn filled" onclick="Auth.logout()">Logout</button>
   </div>
 </nav>
 
-<div class="page" style="max-width:700px">
-  <div class="page-header">
-    <div><h1>Post Walk-in Interview</h1><p>Fill in the details for your walk-in drive</p></div>
-  </div>
+<div class="post-layout">
 
-  <div class="card">
-    <div class="card-body">
-      <div id="alert-box"></div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label>Role / Position *</label>
-          <input class="form-control" id="role" placeholder="e.g. Software Engineer" />
+  <!-- Sidebar -->
+  <div class="post-sidebar">
+    <div class="sidebar-card">
+      <div class="sidebar-header">
+        <h3>Posting Guide</h3>
+        <p>Fill all sections to publish</p>
+      </div>
+      <div class="step-list">
+        <div class="step-item active" id="step-1">
+          <div class="step-num">1</div>
+          <span>Basic Details</span>
         </div>
-        <div class="form-group">
-          <label>Package (CTC) *</label>
-          <input class="form-control" id="package" placeholder="e.g. 8-12 LPA" />
+        <div class="step-item" id="step-2">
+          <div class="step-num">2</div>
+          <span>Job Description</span>
         </div>
-      </div>
-
-      <div class="form-group">
-        <label>Job Description *</label>
-        <textarea class="form-control" id="jd" rows="4" placeholder="Describe the role, responsibilities, requirements..."></textarea>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label>Interview Date *</label>
-          <input class="form-control" id="date" type="date" />
+        <div class="step-item" id="step-3">
+          <div class="step-num">3</div>
+          <span>Requirements</span>
         </div>
-        <div class="form-group">
-          <label>Location</label>
-          <input class="form-control" id="location" placeholder="e.g. Hyderabad, Floor 3" />
+        <div class="step-item" id="step-4">
+          <div class="step-num">4</div>
+          <span>Interview Slots</span>
         </div>
-      </div>
-
-      <div class="form-group">
-        <label>Candidates Required *</label>
-        <input class="form-control" id="candidates" type="number" min="1" placeholder="e.g. 20" />
-      </div>
-
-      <!-- Time Slots -->
-      <div class="form-group" style="margin-top:8px">
-        <label style="margin-bottom:12px;display:block">Time Slots *</label>
-        <div id="slots-container"></div>
-        <button type="button" class="btn btn-white btn-sm" style="color:var(--primary);border:1.5px solid var(--border)" onclick="addSlot()">
-          + Add Time Slot
-        </button>
-      </div>
-
-      <div style="margin-top:24px;display:flex;gap:12px">
-        <button class="btn btn-primary" id="submit-btn" onclick="submitInterview()">🚀 Post Interview</button>
-        <button class="btn btn-white" style="color:var(--muted)" onclick="location.href='dashboard.html'">Cancel</button>
+        <div class="step-item" id="step-5">
+          <div class="step-num">5</div>
+          <span>Review & Publish</span>
+        </div>
       </div>
     </div>
+
+    <!-- Live Preview -->
+    <div style="margin-top:16px">
+      <p style="font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Live Preview</p>
+      <div class="preview-card">
+        <p style="font-size:.7rem;opacity:.6;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px" id="prev-company">Your Company</p>
+        <h4 id="prev-role">Role / Position</h4>
+        <div class="preview-meta">
+          <span class="tag tag-glass" id="prev-package">Package</span>
+          <span class="tag tag-glass" id="prev-date">Date</span>
+          <span class="tag tag-glass" id="prev-slots">0 slots</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Form -->
+  <div class="post-main">
+    <div style="margin-bottom:24px">
+      <h1 style="font-family:var(--font-display);font-size:1.6rem;font-weight:700;color:var(--primary);letter-spacing:-.02em">Post Walk-in Interview</h1>
+      <p style="color:var(--muted);font-size:.875rem;margin-top:4px">Fill in the details below to publish your walk-in drive</p>
+    </div>
+
+    <div id="alert-box"></div>
+
+    <!-- Section 1: Basic Details -->
+    <div class="section-block">
+      <div class="section-block-header">
+        <div class="section-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+        </div>
+        <div>
+          <h3>Basic Details</h3>
+          <p>Core information about this walk-in drive</p>
+        </div>
+      </div>
+      <div class="section-block-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Role / Position</label>
+            <input class="form-control" id="role" type="text" placeholder="e.g. Software Engineer" oninput="updatePreview()"/>
+          </div>
+          <div class="form-group">
+            <label>Package (CTC)</label>
+            <input class="form-control" id="package" type="text" placeholder="e.g. 8–12 LPA" oninput="updatePreview()"/>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Interview Date</label>
+            <input class="form-control" id="date" type="date" oninput="updatePreview()"/>
+          </div>
+          <div class="form-group">
+            <label>Location</label>
+            <input class="form-control" id="location" type="text" placeholder="e.g. Hyderabad, 3rd Floor"/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Candidates Required</label>
+          <div style="display:flex;align-items:center;gap:16px;margin-top:4px">
+            <div class="counter-wrap">
+              <button class="counter-btn" onclick="changeCount(-1)">−</button>
+              <input class="counter-val" id="candidates" type="number" value="10" min="1" max="500" oninput="updatePreview()"/>
+              <button class="counter-btn" onclick="changeCount(1)">+</button>
+            </div>
+            <p style="font-size:.8rem;color:var(--muted)">Total candidates you want to hire</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 2: Job Description -->
+    <div class="section-block">
+      <div class="section-block-header">
+        <div class="section-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        </div>
+        <div>
+          <h3>Job Description</h3>
+          <p>Describe the role, responsibilities and what you are looking for</p>
+        </div>
+      </div>
+      <div class="section-block-body">
+        <div class="form-group" style="margin-bottom:0">
+          <label>Description</label>
+          <textarea class="form-control" id="jd" rows="5"
+            placeholder="Describe the role, key responsibilities, what you are building, team structure, and what makes this opportunity exciting..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 3: Requirements -->
+    <div class="section-block">
+      <div class="section-block-header">
+        <div class="section-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        </div>
+        <div>
+          <h3>Requirements</h3>
+          <p>Skills, experience and qualifications needed</p>
+        </div>
+      </div>
+      <div class="section-block-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Experience Level</label>
+            <select class="form-control" id="experience">
+              <option value="">Select experience</option>
+              <option value="Fresher (0 years)">Fresher (0 years)</option>
+              <option value="0-1 years">0–1 years</option>
+              <option value="1-3 years">1–3 years</option>
+              <option value="3-5 years">3–5 years</option>
+              <option value="5+ years">5+ years</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Education Qualification</label>
+            <select class="form-control" id="education">
+              <option value="">Select qualification</option>
+              <option value="10th Pass">10th Pass</option>
+              <option value="12th Pass">12th Pass</option>
+              <option value="Diploma">Diploma</option>
+              <option value="Any Graduate">Any Graduate</option>
+              <option value="B.Tech / B.E">B.Tech / B.E</option>
+              <option value="MCA / M.Tech">MCA / M.Tech</option>
+              <option value="MBA">MBA</option>
+              <option value="Any Post Graduate">Any Post Graduate</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Skills Tag Input -->
+        <div class="form-group">
+          <label>Required Skills</label>
+          <div style="display:flex;gap:8px">
+            <input class="form-control" id="skill-input" type="text"
+              placeholder="Type a skill and press Enter (e.g. Java, Python, AWS)"
+              onkeydown="handleSkillKey(event)"/>
+            <button class="btn btn-ghost btn-sm" onclick="addSkill()" style="flex-shrink:0">Add</button>
+          </div>
+          <div class="req-tags" id="skills-tags">
+            <span style="font-size:.75rem;color:var(--muted);padding:6px 0">No skills added yet</span>
+          </div>
+        </div>
+
+        <!-- Responsibilities -->
+        <div class="form-group" style="margin-bottom:0">
+          <label>Key Responsibilities (one per line)</label>
+          <textarea class="form-control" id="responsibilities" rows="4"
+            placeholder="• Design and develop scalable backend APIs&#10;• Collaborate with cross-functional teams&#10;• Write clean, maintainable code&#10;• Participate in code reviews"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 4: Interview Slots -->
+    <div class="section-block">
+      <div class="section-block-header">
+        <div class="section-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </div>
+        <div>
+          <h3>Interview Slots</h3>
+          <p>Define time slots and capacity for each slot</p>
+        </div>
+      </div>
+      <div class="section-block-body">
+        <div class="slot-builder" id="slot-builder"></div>
+        <button class="add-slot-btn" onclick="addSlot()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add Time Slot
+        </button>
+
+        <div class="alert alert-info" style="margin-top:16px;margin-bottom:0">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Each slot can have its own candidate capacity. Candidates book one slot at a time.
+        </div>
+      </div>
+    </div>
+
+    <!-- Submit -->
+    <div class="submit-area">
+      <button class="btn btn-primary" id="submit-btn" onclick="submitInterview()" style="min-width:160px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+        Publish Walk-in
+      </button>
+      <button class="btn btn-ghost" onclick="location.href='dashboard.html'">Cancel</button>
+      <p style="margin-left:auto;font-size:.775rem;color:var(--muted)">
+        All fields marked required must be filled
+      </p>
+    </div>
+
   </div>
 </div>
 
@@ -82,61 +584,172 @@
 <script src="../js/auth.js"></script>
 <script>
   Auth.requireAuth('company');
+  const user = Auth.get();
 
-  // Set min date to today
+  // Set min date
   document.getElementById('date').min = new Date().toISOString().split('T')[0];
 
+  // Update preview
+  function updatePreview() {
+    const role = document.getElementById('role').value || 'Role / Position';
+    const pkg  = document.getElementById('package').value || 'Package';
+    const date = document.getElementById('date').value || 'Date';
+    document.getElementById('prev-company').textContent = user?.name || 'Your Company';
+    document.getElementById('prev-role').textContent    = role;
+    document.getElementById('prev-package').textContent = pkg;
+    document.getElementById('prev-date').textContent    = date;
+    document.getElementById('prev-slots').textContent   = `${slotCount} slot${slotCount !== 1 ? 's' : ''}`;
+  }
+
+  // Counter
+  function changeCount(delta) {
+    const inp = document.getElementById('candidates');
+    inp.value = Math.max(1, Math.min(500, parseInt(inp.value || 1) + delta));
+    updatePreview();
+  }
+
+  // Skills
+  let skills = [];
+
+  function handleSkillKey(e) {
+    if (e.key === 'Enter') { e.preventDefault(); addSkill(); }
+  }
+
+  function addSkill() {
+    const inp = document.getElementById('skill-input');
+    const val = inp.value.trim();
+    if (!val || skills.includes(val)) { inp.value = ''; return; }
+    skills.push(val);
+    inp.value = '';
+    renderSkills();
+  }
+
+  function removeSkill(s) {
+    skills = skills.filter(x => x !== s);
+    renderSkills();
+  }
+
+  function renderSkills() {
+    const container = document.getElementById('skills-tags');
+    if (!skills.length) {
+      container.innerHTML = '<span style="font-size:.75rem;color:var(--muted);padding:6px 0">No skills added yet</span>';
+      return;
+    }
+    container.innerHTML = skills.map(s => `
+      <span class="req-tag">
+        ${s}
+        <button onclick="removeSkill('${s}')" title="Remove">×</button>
+      </span>
+    `).join('');
+  }
+
+  // Slots
   let slotCount = 0;
 
   function addSlot() {
     slotCount++;
+    const id  = slotCount;
     const div = document.createElement('div');
-    div.className = 'slot-item';
-    div.id = `slot-${slotCount}`;
+    div.className = 'slot-row';
+    div.id = `slot-row-${id}`;
     div.innerHTML = `
-      <input class="form-control" placeholder="e.g. 10:00 AM - 11:00 AM" id="slot-time-${slotCount}" />
-      <input class="form-control" type="number" min="1" max="100" placeholder="Capacity" id="slot-cap-${slotCount}" style="max-width:110px" value="10" />
-      <button class="remove-slot" onclick="document.getElementById('slot-${slotCount}').remove()">✕</button>
+      <div class="slot-row-label">Slot ${id}</div>
+      <div class="form-group" style="margin-bottom:0">
+        <label style="font-size:.72rem">Start Time</label>
+        <input class="form-control" id="slot-start-${id}" type="time" />
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label style="font-size:.72rem">End Time</label>
+        <input class="form-control" id="slot-end-${id}" type="time" />
+      </div>
+      <div>
+        <label style="font-size:.72rem;display:block;margin-bottom:6px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">Cap.</label>
+        <input class="form-control" id="slot-cap-${id}" type="number" value="10" min="1" max="200"
+          style="text-align:center;font-weight:700" />
+      </div>
+      <button class="slot-delete" onclick="removeSlot(${id})" title="Remove slot">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
     `;
-    document.getElementById('slots-container').appendChild(div);
+    // Fix grid for 5 columns
+    div.style.gridTemplateColumns = '80px 1fr 1fr 80px 40px';
+    document.getElementById('slot-builder').appendChild(div);
+    updatePreview();
   }
 
-  // Add first slot by default
+  function removeSlot(id) {
+    document.getElementById(`slot-row-${id}`)?.remove();
+    updatePreview();
+  }
+
+  // Add 2 default slots
+  addSlot();
   addSlot();
 
+  // Sidebar step highlight
+  const fields = {
+    'step-1': ['role', 'package', 'date'],
+    'step-2': ['jd'],
+    'step-3': ['skill-input'],
+    'step-4': []
+  };
+
+  // Submit
   async function submitInterview() {
-    const btn = document.getElementById('submit-btn');
-    const box = document.getElementById('alert-box');
+    const btn  = document.getElementById('submit-btn');
+    const box  = document.getElementById('alert-box');
 
-    const role       = document.getElementById('role').value.trim();
-    const pkg        = document.getElementById('package').value.trim();
-    const jd         = document.getElementById('jd').value.trim();
-    const date       = document.getElementById('date').value;
-    const location   = document.getElementById('location').value.trim();
-    const candidates = parseInt(document.getElementById('candidates').value);
+    const role           = document.getElementById('role').value.trim();
+    const pkg            = document.getElementById('package').value.trim();
+    const jd             = document.getElementById('jd').value.trim();
+    const date           = document.getElementById('date').value;
+    const location       = document.getElementById('location').value.trim();
+    const candidates     = parseInt(document.getElementById('candidates').value);
+    const experience     = document.getElementById('experience').value;
+    const education      = document.getElementById('education').value;
+    const responsibilities = document.getElementById('responsibilities').value.trim();
 
-    if (!role || !pkg || !jd || !date || !candidates)
-      return showAlert(box, 'Please fill all required fields');
+    if (!role)       return showAlert(box, 'Role / Position is required');
+    if (!pkg)        return showAlert(box, 'Package is required');
+    if (!jd)         return showAlert(box, 'Job Description is required');
+    if (!date)       return showAlert(box, 'Interview Date is required');
+    if (!candidates) return showAlert(box, 'Candidates required must be set');
 
     // Collect slots
     const slots = [];
-    document.querySelectorAll('[id^="slot-time-"]').forEach(el => {
-      const id  = el.id.split('-')[2];
-      const time = el.value.trim();
-      const cap  = parseInt(document.getElementById(`slot-cap-${id}`)?.value || 10);
-      if (time) slots.push({ time, capacity: cap });
+    document.querySelectorAll('[id^="slot-row-"]').forEach(row => {
+      const id    = row.id.split('-')[2];
+      const start = document.getElementById(`slot-start-${id}`)?.value;
+      const end   = document.getElementById(`slot-end-${id}`)?.value;
+      const cap   = parseInt(document.getElementById(`slot-cap-${id}`)?.value || 10);
+      if (start && end) {
+        slots.push({ time: `${start} – ${end}`, capacity: cap });
+      }
     });
 
-    if (!slots.length)
-      return showAlert(box, 'Add at least one time slot');
+    if (!slots.length) return showAlert(box, 'Add at least one complete time slot with start and end time');
 
-    setLoading(btn, true, 'Posting...');
+    // Build full JD with requirements
+    const fullJD = [
+      jd,
+      experience    ? `\nExperience: ${experience}` : '',
+      education     ? `\nEducation: ${education}`   : '',
+      skills.length ? `\nSkills: ${skills.join(', ')}` : '',
+      responsibilities ? `\n\nResponsibilities:\n${responsibilities}` : ''
+    ].join('');
+
+    setLoading(btn, true, 'Publishing...');
     try {
       await Api.postInterview({
-        role, package: pkg, job_description: jd,
-        interview_date: date, location, candidates_required: candidates, slots
+        role,
+        package: pkg,
+        job_description: fullJD,
+        interview_date: date,
+        location,
+        candidates_required: candidates,
+        slots
       });
-      showAlert(box, 'Interview posted successfully!', 'success');
+      showAlert(box, 'Walk-in interview published successfully!', 'success');
       setTimeout(() => location.href = 'dashboard.html', 1000);
     } catch (err) {
       showAlert(box, err.message);
@@ -144,6 +757,8 @@
       setLoading(btn, false);
     }
   }
+
+  updatePreview();
 </script>
 </body>
 </html>

@@ -1,62 +1,520 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Browse Interviews — HireWalk</title>
-  <link rel="stylesheet" href="../css/style.css" />
+  <link rel="stylesheet" href="../css/style.css"/>
   <style>
-    .search-bar {
-      display: flex; gap: 12px; margin-bottom: 28px; flex-wrap: wrap;
+    /* ── Page Hero Banner ── */
+    .browse-hero {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-mid) 60%, #1e40af 100%);
+      padding: 40px 24px 80px;
+      position: relative;
+      overflow: hidden;
     }
-    .search-bar input {
-      flex: 1; min-width: 220px;
-      padding: 11px 16px;
+
+    .browse-hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background-image: linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    .browse-hero-content {
+      max-width: 1100px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    .browse-hero h1 {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -.02em;
+      margin-bottom: 6px;
+    }
+
+    .browse-hero p { color: rgba(255,255,255,.65); font-size: .9rem; }
+
+    /* ── Search Bar (overlapping hero) ── */
+    .search-wrap {
+      max-width: 1100px;
+      margin: -28px auto 0;
+      padding: 0 24px;
+      position: relative;
+      z-index: 10;
+    }
+
+    .search-box {
+      background: #fff;
+      border-radius: var(--radius);
+      box-shadow: 0 8px 32px rgba(15,31,61,.18);
+      padding: 6px 6px 6px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
       border: 1.5px solid var(--border);
-      border-radius: 10px;
-      font-size: .95rem;
-      outline: none;
-      transition: border-color .2s;
     }
-    .search-bar input:focus { border-color: var(--accent); }
+
+    .search-box svg { color: var(--muted); flex-shrink: 0; }
+
+    .search-box input {
+      flex: 1;
+      border: none;
+      outline: none;
+      font-size: .95rem;
+      font-family: var(--font);
+      color: var(--text);
+      background: transparent;
+      padding: 8px 0;
+    }
+
+    .search-box input::placeholder { color: var(--muted); }
+
+    .filter-pills {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+
+    .filter-pill {
+      padding: 7px 14px;
+      border-radius: 99px;
+      font-size: .775rem;
+      font-weight: 600;
+      border: 1.5px solid var(--border);
+      background: var(--bg);
+      color: var(--muted);
+      cursor: pointer;
+      transition: all .18s;
+      font-family: var(--font);
+      white-space: nowrap;
+    }
+
+    .filter-pill:hover,
+    .filter-pill.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    /* ── Main Content ── */
+    .browse-content {
+      max-width: 1100px;
+      margin: 32px auto;
+      padding: 0 24px;
+    }
+
+    .results-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .results-count {
+      font-size: .825rem;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .results-count span {
+      color: var(--primary);
+      font-weight: 700;
+    }
+
+    /* ── Interview Cards ── */
+    .interviews-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 20px;
+    }
+
+    .icard {
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      transition: transform .22s, box-shadow .22s, border-color .22s;
+      animation: cardIn .3s ease both;
+    }
+
+    .icard:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow);
+      border-color: #bfdbfe;
+    }
+
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .icard-header {
+      background: linear-gradient(135deg, var(--primary), var(--primary-mid));
+      padding: 20px 22px;
+      position: relative;
+    }
+
+    .icard-company {
+      font-size: .72rem;
+      color: rgba(255,255,255,.6);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .company-dot {
+      width: 6px; height: 6px;
+      background: #4ade80;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .icard-role {
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 14px;
+      line-height: 1.3;
+    }
+
+    .icard-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+
+    .itag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 99px;
+      font-size: .72rem;
+      font-weight: 600;
+      background: rgba(255,255,255,.12);
+      color: rgba(255,255,255,.9);
+      border: 1px solid rgba(255,255,255,.15);
+    }
+
+    .icard-body { padding: 18px 22px; }
+
+    .icard-desc {
+      font-size: .825rem;
+      color: var(--muted);
+      line-height: 1.6;
+      margin-bottom: 14px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .icard-meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .icard-meta-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: .8rem;
+      color: var(--text-mid);
+    }
+
+    .icard-meta-item svg { color: var(--accent); flex-shrink: 0; }
+
+    .icard-footer {
+      padding: 14px 22px;
+      border-top: 1px solid var(--border);
+      background: #fafbff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .slots-available {
+      font-size: .775rem;
+      color: var(--success);
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .slots-full {
+      font-size: .775rem;
+      color: var(--danger);
+      font-weight: 600;
+    }
+
+    /* ── Active Booking Banner ── */
+    .active-banner {
+      background: linear-gradient(135deg, #fef9c3, #fef3c7);
+      border: 1px solid #fcd34d;
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .active-banner-icon {
+      width: 36px; height: 36px;
+      background: #fcd34d;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .active-banner p { font-size: .825rem; color: #78350f; flex: 1; line-height: 1.5; }
+    .active-banner strong { color: #451a03; }
+
+    /* ── Modal ── */
+    .book-modal {
+      background: #fff;
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 520px;
+      box-shadow: 0 24px 64px rgba(15,31,61,.25);
+      transform: translateY(16px) scale(.98);
+      transition: transform .25s, opacity .25s;
+      overflow: hidden;
+    }
+
+    .modal-overlay.active .book-modal { transform: translateY(0) scale(1); }
+
+    .book-modal-header {
+      background: linear-gradient(135deg, var(--primary), var(--primary-mid));
+      padding: 22px 24px;
+      color: #fff;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .book-modal-header h3 {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    .book-modal-header p { font-size: .8rem; opacity: .7; margin-top: 3px; }
+
+    .modal-close-btn {
+      width: 30px; height: 30px;
+      background: rgba(255,255,255,.15);
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: background .18s;
+    }
+
+    .modal-close-btn:hover { background: rgba(255,255,255,.25); }
+
+    .book-modal-body { padding: 24px; }
+
+    .slot-pick-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 8px;
+      margin: 16px 0 20px;
+    }
+
+    .slot-pick {
+      padding: 12px;
+      border-radius: var(--radius-sm);
+      border: 1.5px solid var(--border);
+      background: var(--bg);
+      cursor: pointer;
+      transition: all .18s;
+      text-align: center;
+      font-family: var(--font);
+    }
+
+    .slot-pick:hover:not(.slot-full) {
+      border-color: var(--accent);
+      background: var(--accent-light);
+      color: var(--accent);
+    }
+
+    .slot-pick.selected {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .slot-pick.slot-full {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    .slot-time {
+      font-size: .825rem;
+      font-weight: 700;
+      color: inherit;
+      display: block;
+      margin-bottom: 3px;
+    }
+
+    .slot-cap {
+      font-size: .7rem;
+      color: inherit;
+      opacity: .75;
+    }
+
+    .slot-pick.selected .slot-cap { opacity: .85; }
+
+    .book-modal-footer {
+      padding: 16px 24px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 10px;
+      background: #fafbff;
+    }
+
+    /* ── Empty State ── */
+    .empty-wrap {
+      text-align: center;
+      padding: 80px 20px;
+    }
+
+    .empty-icon-wrap {
+      width: 72px; height: 72px;
+      background: var(--bg);
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 20px;
+    }
+
+    .empty-wrap h3 {
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
+
+    .empty-wrap p { color: var(--muted); font-size: .875rem; }
+
+    @media (max-width: 640px) {
+      .search-box { flex-direction: column; align-items: stretch; padding: 12px 16px; }
+      .filter-pills { display: none; }
+      .interviews-grid { grid-template-columns: 1fr; }
+      .icard-meta { grid-template-columns: 1fr; }
+      .browse-hero { padding: 32px 20px 70px; }
+    }
   </style>
 </head>
 <body>
 
+<!-- Navbar -->
 <nav class="navbar">
-  <div class="nav-brand">🚀 <span>HireWalk</span></div>
+  <a class="nav-brand" href="../index.html">
+    <div class="nav-brand-icon">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round">
+        <path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
+        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+      </svg>
+    </div>
+    Hire<span>Walk</span>
+  </a>
   <div class="nav-links" id="nav-right"></div>
 </nav>
 
-<div class="page">
-  <div class="page-header">
-    <div><h1>Browse Walk-in Interviews</h1><p>Find and book your next interview slot</p></div>
-    <button class="btn btn-primary" onclick="location.href='mock-interview.html'">🤖 AI Mock Interview</button>
+<!-- Hero -->
+<div class="browse-hero">
+  <div class="browse-hero-content">
+    <h1>Browse Walk-in Interviews</h1>
+    <p>Discover opportunities from top companies — book your slot instantly</p>
   </div>
+</div>
 
-  <!-- Active Booking Banner -->
-  <div id="active-banner"></div>
-
-  <div class="search-bar">
-    <input id="search" placeholder="🔍 Search role or company..." oninput="filterCards()" />
-  </div>
-
-  <div id="interviews-grid">
-    <div style="text-align:center;padding:60px;color:var(--muted)">
-      <span class="spinner" style="border-top-color:var(--primary);width:32px;height:32px"></span>
-      <p style="margin-top:12px">Loading interviews...</p>
+<!-- Search Bar -->
+<div class="search-wrap">
+  <div class="search-box">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input type="text" id="search" placeholder="Search by role, company, or location..." oninput="filterCards()"/>
+    <div class="filter-pills">
+      <button class="filter-pill active" onclick="setFilter('all', this)">All</button>
+      <button class="filter-pill" onclick="setFilter('today', this)">Today</button>
+      <button class="filter-pill" onclick="setFilter('week', this)">This Week</button>
     </div>
   </div>
 </div>
 
+<!-- Content -->
+<div class="browse-content">
+
+  <!-- Active Booking Banner -->
+  <div id="active-banner" style="display:none" class="active-banner">
+    <div class="active-banner-icon">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#92400e" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    </div>
+    <p id="banner-text">You have an active booking.</p>
+    <button class="btn btn-ghost btn-sm" onclick="location.href='dashboard.html'" style="flex-shrink:0">View Booking</button>
+  </div>
+
+  <!-- Results Header -->
+  <div class="results-header">
+    <p class="results-count" id="results-count">Loading interviews...</p>
+    <button class="btn btn-primary btn-sm" onclick="location.href='mock-interview.html'">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/></svg>
+      AI Mock Interview
+    </button>
+  </div>
+
+  <!-- Grid -->
+  <div id="interviews-grid">
+    <div style="text-align:center;padding:80px 20px">
+      <span class="spinner spinner-dark" style="width:28px;height:28px"></span>
+      <p style="margin-top:12px;color:var(--muted);font-size:.875rem">Loading interviews...</p>
+    </div>
+  </div>
+
+</div>
+
 <!-- Booking Modal -->
 <div class="modal-overlay" id="book-modal">
-  <div class="modal">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-      <h3>Book Interview Slot</h3>
-      <button onclick="closeModal()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--muted)">✕</button>
+  <div class="book-modal">
+    <div class="book-modal-header">
+      <div>
+        <h3 id="modal-role">Book Interview Slot</h3>
+        <p id="modal-company">Select your preferred time slot below</p>
+      </div>
+      <button class="modal-close-btn" onclick="closeModal()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
     </div>
-    <div id="modal-content"></div>
+    <div class="book-modal-body">
+      <div id="modal-alert"></div>
+      <p style="font-size:.825rem;font-weight:600;color:var(--text-mid)">Available Time Slots</p>
+      <div class="slot-pick-grid" id="slot-pick-grid"></div>
+    </div>
+    <div class="book-modal-footer">
+      <button class="btn btn-primary" id="confirm-btn" onclick="confirmBooking()" style="flex:1">
+        Confirm Booking
+      </button>
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+    </div>
   </div>
 </div>
 
@@ -67,14 +525,20 @@
   Auth.requireAuth('user');
 
   document.getElementById('nav-right').innerHTML = `
-    <button class="nav-btn outline" onclick="location.href='dashboard.html'">My Bookings</button>
-    <button class="nav-btn outline" onclick="location.href='mock-interview.html'">🤖 Mock AI</button>
-    <span style="color:rgba(255,255,255,.7);font-size:.875rem">Hi, ${user?.name?.split(' ')[0]}</span>
-    <button class="nav-btn solid" onclick="Auth.logout()">Logout</button>
+    <button class="nav-btn ghost" onclick="location.href='dashboard.html'">My Bookings</button>
+    <button class="nav-btn ghost" onclick="location.href='mock-interview.html'">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/></svg>
+      AI Mock
+    </button>
+    <span style="color:rgba(255,255,255,.7);font-size:.825rem;font-weight:500">Hi, ${user?.name?.split(' ')[0]}</span>
+    <button class="nav-btn filled" onclick="Auth.logout()">Logout</button>
   `;
 
-  let allInterviews = [];
-  let activeBooking = null;
+  let allInterviews  = [];
+  let activeBooking  = null;
+  let selectedSlotId = null;
+  let currentInterview = null;
+  let currentFilter  = 'all';
 
   async function load() {
     try {
@@ -84,106 +548,162 @@
       ]);
 
       allInterviews = interviews;
-      activeBooking = bookings.find(b => b.status === 'confirmed' && new Date(b.interview_date) >= new Date());
+      activeBooking = bookings.find(b =>
+        b.status === 'confirmed' && new Date(b.interview_date) >= new Date()
+      );
 
       if (activeBooking) {
-        document.getElementById('active-banner').innerHTML = `
-          <div class="booking-banner">
-            <span style="font-size:1.3rem">⚠️</span>
-            <p>You have an active booking: <strong>${activeBooking.role}</strong> at <strong>${activeBooking.company_name}</strong> on ${activeBooking.interview_date}. Cancel it to book a new slot.</p>
-            <button class="btn btn-danger btn-sm" style="flex-shrink:0" onclick="location.href='dashboard.html'">View Booking</button>
-          </div>`;
+        document.getElementById('active-banner').style.display = 'flex';
+        document.getElementById('banner-text').innerHTML =
+          `You have an active booking: <strong>${activeBooking.role}</strong> at <strong>${activeBooking.company_name}</strong> on ${activeBooking.interview_date}. Cancel it to book a new slot.`;
       }
 
-      renderCards(interviews);
+      renderGrid(interviews);
     } catch (err) {
-      document.getElementById('interviews-grid').innerHTML = `<div class="alert alert-error">⚠️ ${err.message}</div>`;
+      document.getElementById('interviews-grid').innerHTML =
+        `<div class="alert alert-error">${err.message}</div>`;
     }
   }
 
-  function renderCards(list) {
-    const grid = document.getElementById('interviews-grid');
-    if (!list.length) {
-      grid.innerHTML = `<div class="empty-state"><div class="icon">📭</div><h3>No interviews available</h3><p>Check back later for new walk-in opportunities</p></div>`;
-      return;
-    }
-    grid.innerHTML = `<div class="grid-2">${list.map(renderCard).join('')}</div>`;
-  }
-
-  function renderCard(i) {
-    const availableSlots = i.slots?.filter(s => s.booked_count < s.total_capacity) || [];
-    const allFull = availableSlots.length === 0;
-    return `
-      <div class="card interview-card">
-        <div class="card-top">
-          <p class="company">🏢 ${i.company_name}</p>
-          <p class="role">${i.role}</p>
-          <div>
-            <span class="tag tag-blue">💰 ${i.package}</span>
-            <span class="tag tag-white">📅 ${i.interview_date}</span>
-            ${i.location ? `<span class="tag tag-white">📍 ${i.location}</span>` : ''}
-          </div>
-        </div>
-        <div class="card-details">
-          <p style="font-size:.85rem;color:var(--muted);margin-bottom:12px;line-height:1.5">
-            ${i.job_description?.substring(0, 120)}${i.job_description?.length > 120 ? '...' : ''}
-          </p>
-          <div class="detail-row">👥 <span>${i.candidates_required} candidates needed</span></div>
-          <div class="detail-row">🕒 <span>${i.slots?.length || 0} time slots · ${availableSlots.length} available</span></div>
-          <div style="margin-top:14px">
-            ${allFull
-              ? `<button class="btn btn-white btn-sm" style="color:var(--muted)" disabled>All Slots Full</button>`
-              : `<button class="btn btn-primary btn-sm" onclick="openBookModal(${JSON.stringify(i).replace(/"/g, '&quot;')})">Book Slot →</button>`
-            }
-          </div>
-        </div>
-      </div>`;
+  function setFilter(f, el) {
+    currentFilter = f;
+    document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    filterCards();
   }
 
   function filterCards() {
     const q = document.getElementById('search').value.toLowerCase();
-    const filtered = allInterviews.filter(i =>
-      i.role.toLowerCase().includes(q) ||
-      i.company_name.toLowerCase().includes(q)
-    );
-    renderCards(filtered);
+    const today = new Date().toISOString().split('T')[0];
+    const weekEnd = new Date();
+    weekEnd.setDate(weekEnd.getDate() + 7);
+
+    let list = allInterviews.filter(i => {
+      const matchQ = !q ||
+        i.role.toLowerCase().includes(q) ||
+        i.company_name.toLowerCase().includes(q) ||
+        (i.location || '').toLowerCase().includes(q);
+
+      let matchF = true;
+      if (currentFilter === 'today') matchF = i.interview_date === today;
+      if (currentFilter === 'week')  matchF = new Date(i.interview_date) <= weekEnd;
+
+      return matchQ && matchF;
+    });
+
+    renderGrid(list);
   }
 
-  let selectedSlot = null;
-  let currentInterview = null;
+  function renderGrid(list) {
+    const grid  = document.getElementById('interviews-grid');
+    const count = document.getElementById('results-count');
 
-  function openBookModal(interview) {
+    count.innerHTML = `<span>${list.length}</span> interview${list.length !== 1 ? 's' : ''} found`;
+
+    if (!list.length) {
+      grid.innerHTML = `
+        <div class="empty-wrap">
+          <div class="empty-icon-wrap">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </div>
+          <h3>No interviews found</h3>
+          <p>Try adjusting your search or check back later for new opportunities</p>
+        </div>`;
+      return;
+    }
+
+    grid.innerHTML = `<div class="interviews-grid">${list.map((i, idx) => renderCard(i, idx)).join('')}</div>`;
+  }
+
+  function renderCard(i, idx) {
+    const available = (i.slots || []).filter(s => s.booked_count < s.total_capacity);
+    const isFull    = available.length === 0;
+    const delay     = idx * 0.05;
+
+    return `
+      <div class="icard" style="animation-delay:${delay}s">
+        <div class="icard-header">
+          <div class="icard-company">
+            <span class="company-dot"></span>
+            ${i.company_name}
+          </div>
+          <div class="icard-role">${i.role}</div>
+          <div class="icard-tags">
+            <span class="itag">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              ${i.package}
+            </span>
+            <span class="itag">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              ${i.interview_date}
+            </span>
+            ${i.location ? `<span class="itag">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              ${i.location}
+            </span>` : ''}
+          </div>
+        </div>
+
+        <div class="icard-body">
+          <p class="icard-desc">${i.job_description || 'No description provided.'}</p>
+          <div class="icard-meta">
+            <div class="icard-meta-item">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              <span>${i.candidates_required} candidates needed</span>
+            </div>
+            <div class="icard-meta-item">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <span>${i.slots?.length || 0} slots · ${available.length} open</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="icard-footer">
+          ${isFull
+            ? `<span class="slots-full">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                All slots filled
+               </span>`
+            : `<span class="slots-available">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="20 6 9 17 4 12"/></svg>
+                ${available.length} slot${available.length > 1 ? 's' : ''} available
+               </span>`
+          }
+          ${isFull
+            ? `<button class="btn btn-ghost btn-sm" disabled style="opacity:.5;cursor:not-allowed">Fully Booked</button>`
+            : `<button class="btn btn-primary btn-sm" onclick='openModal(${JSON.stringify(i).replace(/'/g,"&#39;")})'>
+                Book Slot
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+               </button>`
+          }
+        </div>
+      </div>`;
+  }
+
+  function openModal(interview) {
     currentInterview = interview;
-    selectedSlot = null;
-    const modal = document.getElementById('book-modal');
-    const content = document.getElementById('modal-content');
+    selectedSlotId   = null;
 
-    const availableSlots = interview.slots?.filter(s => s.booked_count < s.total_capacity) || [];
+    document.getElementById('modal-role').textContent    = interview.role;
+    document.getElementById('modal-company').textContent = interview.company_name;
+    document.getElementById('modal-alert').innerHTML     = '';
 
-    content.innerHTML = `
-      <div id="book-alert"></div>
-      <p style="color:var(--muted);font-size:.875rem;margin-bottom:16px"><strong>${interview.company_name}</strong> — ${interview.role}</p>
-      <p style="font-size:.875rem;font-weight:600;margin-bottom:10px">Select a time slot:</p>
-      <div class="slots-grid" id="slots-grid">
-        ${availableSlots.map(s => `
-          <button class="slot-btn" data-id="${s.id}" onclick="selectSlot(this, ${s.id})">
-            ${s.slot_time}
-            <br><small style="opacity:.7">${s.total_capacity - s.booked_count} left</small>
-          </button>
-        `).join('')}
+    const available = (interview.slots || []).filter(s => s.booked_count < s.total_capacity);
+
+    document.getElementById('slot-pick-grid').innerHTML = available.map(s => `
+      <div class="slot-pick" onclick="selectSlot(this, ${s.id})" data-id="${s.id}">
+        <span class="slot-time">${s.slot_time}</span>
+        <span class="slot-cap">${s.total_capacity - s.booked_count} spots left</span>
       </div>
-      <div style="margin-top:20px;display:flex;gap:10px">
-        <button class="btn btn-primary" id="confirm-btn" onclick="confirmBooking()">Confirm Booking</button>
-        <button class="btn btn-white" style="color:var(--muted)" onclick="closeModal()">Cancel</button>
-      </div>
-    `;
-    modal.classList.add('active');
+    `).join('');
+
+    document.getElementById('book-modal').classList.add('active');
   }
 
-  function selectSlot(el, slotId) {
-    document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
+  function selectSlot(el, id) {
+    document.querySelectorAll('.slot-pick').forEach(s => s.classList.remove('selected'));
     el.classList.add('selected');
-    selectedSlot = slotId;
+    selectedSlotId = id;
   }
 
   function closeModal() {
@@ -191,22 +711,33 @@
   }
 
   async function confirmBooking() {
-    if (!selectedSlot) return showAlert(document.getElementById('book-alert'), 'Please select a slot');
-    if (activeBooking) return showAlert(document.getElementById('book-alert'), 'Cancel your active booking first');
+    if (!selectedSlotId) {
+      showAlert(document.getElementById('modal-alert'), 'Please select a time slot first');
+      return;
+    }
+    if (activeBooking) {
+      showAlert(document.getElementById('modal-alert'), 'Cancel your current active booking first');
+      return;
+    }
 
     const btn = document.getElementById('confirm-btn');
     setLoading(btn, true, 'Booking...');
     try {
-      await Api.book({ interview_id: currentInterview.id, slot_id: selectedSlot });
+      await Api.book({ interview_id: currentInterview.id, slot_id: selectedSlotId });
       closeModal();
-      showAlert(document.querySelector('#active-banner') || document.body, '✅ Booking confirmed! Check your email.', 'success');
+      showAlert(document.getElementById('active-banner'), 'Booking confirmed! Check your email for details.', 'success');
       load();
     } catch (err) {
-      showAlert(document.getElementById('book-alert'), err.message);
+      showAlert(document.getElementById('modal-alert'), err.message);
     } finally {
       setLoading(btn, false);
     }
   }
+
+  // Close modal on overlay click
+  document.getElementById('book-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
 
   load();
 </script>

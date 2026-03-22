@@ -61,3 +61,23 @@ def send_booking_confirmation(user_name, user_email, company_name, role, intervi
 </body>
 </html>"""
     return _send(user_email, subject, html)
+
+def send_otp_email(to_email, name, otp):
+    subject = "🔐 Verify Your Email — HireWalk"
+    html = f"""
+<!DOCTYPE html>
+<html>
+<body style="font-family:Arial,sans-serif;background:#f0f4ff;margin:0;padding:20px;">
+  <div style="max-width:500px;margin:auto;background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.1);">
+    <div style="background:linear-gradient(135deg,#1e3a5f,#4f8ef7);padding:32px;text-align:center;">
+      <h1 style="color:white;margin:0;font-size:24px;">🔐 Verify Your Email</h1>
+    </div>
+    <div style="padding:32px;text-align:center;">
+      <p style="font-size:16px;color:#1e293b;">Hi <strong>{name}</strong>, use this OTP to verify your account:</p>
+      <div style="font-size:3rem;font-weight:800;letter-spacing:12px;color:#1e3a5f;margin:24px 0;padding:20px;background:#f0f4ff;border-radius:12px;">{otp}</div>
+      <p style="color:#64748b;font-size:.9rem;">This OTP expires in <strong>10 minutes</strong>. Do not share it with anyone.</p>
+    </div>
+  </div>
+</body>
+</html>"""
+    return _send(to_email, subject, html)

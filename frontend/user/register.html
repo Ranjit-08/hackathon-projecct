@@ -10,41 +10,61 @@
 <div class="auth-page">
   <div class="auth-card">
     <a class="auth-logo" href="../index.html">🚀 HireWalk</a>
-    <h2>Create Your Account</h2>
-    <p class="subtitle">Start your interview journey today</p>
 
-    <div id="alert-box"></div>
-
-    <div class="form-group">
-      <label>Full Name *</label>
-      <input class="form-control" id="name" type="text" placeholder="Your full name" />
-    </div>
-    <div class="form-group">
-      <label>Email *</label>
-      <input class="form-control" id="email" type="email" placeholder="you@email.com" />
-    </div>
-    <div class="form-row">
+    <!-- Step 1: Registration Form -->
+    <div id="step-register">
+      <h2>Create Your Account</h2>
+      <p class="subtitle">Start your interview journey today</p>
+      <div id="alert-box"></div>
       <div class="form-group">
-        <label>Password *</label>
-        <input class="form-control" id="password" type="password" placeholder="Min 6 chars" />
+        <label>Full Name *</label>
+        <input class="form-control" id="name" type="text" placeholder="Your full name" />
       </div>
       <div class="form-group">
-        <label>Phone</label>
-        <input class="form-control" id="phone" type="tel" placeholder="+91 XXXXX" />
+        <label>Email *</label>
+        <input class="form-control" id="email" type="email" placeholder="you@email.com" />
       </div>
-    </div>
-    <div class="form-group">
-      <label>Skills (comma separated)</label>
-      <input class="form-control" id="skills" placeholder="Java, Python, AWS, React..." />
+      <div class="form-row">
+        <div class="form-group">
+          <label>Password *</label>
+          <input class="form-control" id="password" type="password" placeholder="Min 6 chars" />
+        </div>
+        <div class="form-group">
+          <label>Phone</label>
+          <input class="form-control" id="phone" type="tel" placeholder="+91 XXXXX" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Skills (comma separated)</label>
+        <input class="form-control" id="skills" placeholder="Java, Python, AWS..." />
+      </div>
+      <button class="btn btn-primary" style="width:100%;margin-top:8px" id="reg-btn" onclick="sendOtp()">
+        Send OTP to Email
+      </button>
+      <p style="text-align:center;margin-top:20px;font-size:.875rem;color:var(--muted)">
+        Already have an account? <a href="login.html" style="color:var(--accent);font-weight:600">Login</a>
+      </p>
     </div>
 
-    <button class="btn btn-primary" style="width:100%;margin-top:8px" id="reg-btn" onclick="register()">
-      Create Account
-    </button>
+    <!-- Step 2: OTP Verification -->
+    <div id="step-otp" style="display:none">
+      <h2>Verify Your Email</h2>
+      <p class="subtitle" id="otp-subtitle">Enter the 6-digit OTP sent to your email</p>
+      <div id="otp-alert-box"></div>
+      <div class="form-group" style="margin-top:16px">
+        <label>6-Digit OTP *</label>
+        <input class="form-control" id="otp" type="text" maxlength="6"
+          placeholder="Enter OTP" style="font-size:1.5rem;letter-spacing:8px;text-align:center" />
+      </div>
+      <button class="btn btn-primary" style="width:100%;margin-top:8px" id="verify-btn" onclick="verifyOtp()">
+        Verify & Create Account
+      </button>
+      <button onclick="document.getElementById('step-otp').style.display='none';document.getElementById('step-register').style.display='block'"
+        style="width:100%;margin-top:10px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:.875rem">
+        ← Back to Register
+      </button>
+    </div>
 
-    <p style="text-align:center;margin-top:20px;font-size:.875rem;color:var(--muted)">
-      Already have an account? <a href="login.html" style="color:var(--accent);font-weight:600">Login</a>
-    </p>
   </div>
 </div>
 
@@ -52,21 +72,43 @@
 <script src="../js/auth.js"></script>
 <script>
   Auth.redirectIfLoggedIn();
+  let registeredEmail = '';
 
-  async function register() {
-    const btn  = document.getElementById('reg-btn');
-    const box  = document.getElementById('alert-box');
-    const name     = document.getElementById('name').value.trim();
-    const email    = document.getElementById('email').value.trim();
+  async function sendOtp() {
+    const btn    = document.getElementById('reg-btn');
+    const box    = document.getElementById('alert-box');
+    const name   = document.getElementById('name').value.trim();
+    const email  = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
-    const phone    = document.getElementById('phone').value.trim();
-    const skills   = document.getElementById('skills').value.trim();
+    const phone  = document.getElementById('phone').value.trim();
+    const skills = document.getElementById('skills').value.trim();
 
     if (!name || !email || !password) return showAlert(box, 'Please fill all required fields');
 
-    setLoading(btn, true, 'Creating account...');
+    setLoading(btn, true, 'Sending OTP...');
     try {
-      const res = await Api.userRegister({ name, email, password, phone, skills });
+      await Api.post('/auth/user/send-otp', { name, email, password, phone, skills });
+      registeredEmail = email;
+      document.getElementById('otp-subtitle').textContent = `OTP sent to ${email}`;
+      document.getElementById('step-register').style.display = 'none';
+      document.getElementById('step-otp').style.display = 'block';
+    } catch (err) {
+      showAlert(box, err.message);
+    } finally {
+      setLoading(btn, false);
+    }
+  }
+
+  async function verifyOtp() {
+    const btn = document.getElementById('verify-btn');
+    const box = document.getElementById('otp-alert-box');
+    const otp = document.getElementById('otp').value.trim();
+
+    if (!otp || otp.length !== 6) return showAlert(box, 'Enter the 6-digit OTP');
+
+    setLoading(btn, true, 'Verifying...');
+    try {
+      const res = await Api.post('/auth/user/verify-otp', { email: registeredEmail, otp });
       Auth.save(res.token, res.user);
       showAlert(box, 'Account created! Redirecting...', 'success');
       setTimeout(() => location.href = 'browse.html', 800);

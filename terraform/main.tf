@@ -11,8 +11,6 @@ provider "aws" {
   region = var.aws_region
 }
 
-# ── VPC & Networking ─────────────────────────────────────────────────────────
-
 resource "aws_vpc" "main" {
   cidr_block           = "10.0.0.0/16"
   enable_dns_support   = true
@@ -59,8 +57,6 @@ resource "aws_route_table_association" "b" {
   subnet_id      = aws_subnet.public_b.id
   route_table_id = aws_route_table.public.id
 }
-
-# ── Security Groups ───────────────────────────────────────────────────────────
 
 resource "aws_security_group" "ec2_sg" {
   name        = "hirewalk-ec2-sg"
@@ -113,8 +109,6 @@ resource "aws_security_group" "rds_sg" {
   tags = { Name = "hirewalk-rds-sg" }
 }
 
-# ── RDS MySQL ─────────────────────────────────────────────────────────────────
-
 resource "aws_db_subnet_group" "main" {
   name       = "hirewalk-db-subnet"
   subnet_ids = [aws_subnet.public_a.id, aws_subnet.public_b.id]
@@ -136,31 +130,16 @@ resource "aws_db_instance" "mysql" {
   publicly_accessible    = false
   skip_final_snapshot    = true
   deletion_protection    = false
-
   tags = { Name = "hirewalk-db" }
 }
 
-# ── EC2 Instance ──────────────────────────────────────────────────────────────
-
+# Plain EC2 — no user_data
 resource "aws_instance" "app" {
-  ami                    = "ami-0c02fb55956c7d316" # Amazon Linux 2023 us-east-1
+  ami                    = "ami-0c02fb55956c7d316"
   instance_type          = "t2.micro"
   subnet_id              = aws_subnet.public_a.id
   vpc_security_group_ids = [aws_security_group.ec2_sg.id]
   key_name               = var.key_pair_name
 
-  user_data = templatefile("${path.module}/user_data.sh", {
-    db_host       = aws_db_instance.mysql.address
-    db_name       = "walkin_platform"
-    db_user       = var.db_username
-    db_password   = var.db_password
-    smtp_user     = var.smtp_user
-    smtp_password = var.smtp_password
-    groq_api_key  = var.groq_api_key
-    jwt_secret    = var.jwt_secret
-  })
-
   tags = { Name = "hirewalk-app" }
-
-  depends_on = [aws_db_instance.mysql]
 }

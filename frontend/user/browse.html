@@ -618,6 +618,7 @@
   function renderCard(i, idx) {
     const available = (i.slots || []).filter(s => s.booked_count < s.total_capacity);
     const isFull    = available.length === 0;
+    const isBooked  = activeBooking && activeBooking.interview_id === i.id;
     const delay     = idx * 0.05;
 
     return `
@@ -659,19 +660,25 @@
         </div>
 
         <div class="icard-footer">
-          ${isFull
+          ${isBooked
+            ? `<span style="display:flex;align-items:center;gap:6px;font-size:.775rem;font-weight:600;color:var(--success)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                Slot Booked
+               </span>
+               <button class="btn btn-ghost btn-sm" onclick="location.href='dashboard.html'">
+                 View Booking
+               </button>`
+            : isFull
             ? `<span class="slots-full">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
                 All slots filled
-               </span>`
+               </span>
+               <button class="btn btn-ghost btn-sm" disabled style="opacity:.5;cursor:not-allowed">Fully Booked</button>`
             : `<span class="slots-available">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="20 6 9 17 4 12"/></svg>
                 ${available.length} slot${available.length > 1 ? 's' : ''} available
-               </span>`
-          }
-          ${isFull
-            ? `<button class="btn btn-ghost btn-sm" disabled style="opacity:.5;cursor:not-allowed">Fully Booked</button>`
-            : `<button class="btn btn-primary btn-sm" onclick='openModal(${JSON.stringify(i).replace(/'/g,"&#39;")})'>
+               </span>
+               <button class="btn btn-primary btn-sm" onclick='openModal(${JSON.stringify(i).replace(/'/g,"&#39;")})'>
                 Book Slot
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                </button>`
@@ -679,7 +686,6 @@
         </div>
       </div>`;
   }
-
   function openModal(interview) {
     currentInterview = interview;
     selectedSlotId   = null;

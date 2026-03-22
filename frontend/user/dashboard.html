@@ -1,21 +1,162 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>My Bookings — HireWalk</title>
-  <link rel="stylesheet" href="../css/style.css" />
+  <link rel="stylesheet" href="../css/style.css"/>
+  <style>
+    .booking-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      margin-bottom: 16px;
+      transition: var(--transition);
+    }
+    .booking-card:hover { box-shadow: var(--shadow); transform: translateY(-2px); }
+
+    .booking-card-header {
+      background: linear-gradient(135deg, var(--primary), var(--primary-mid));
+      padding: 18px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .booking-card-header h3 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -.01em;
+    }
+
+    .booking-card-header p {
+      font-size: .775rem;
+      color: rgba(255,255,255,.6);
+      margin-top: 3px;
+    }
+
+    .booking-card-body {
+      padding: 18px 22px;
+    }
+
+    .booking-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .booking-meta-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: .825rem;
+      color: var(--text-mid);
+    }
+
+    .booking-meta-item svg { color: var(--accent); flex-shrink: 0; }
+
+    .booking-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding-top: 14px;
+      border-top: 1px solid var(--border-light);
+    }
+
+    .stat-card-v2 {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 22px 24px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+      position: relative;
+      overflow: hidden;
+      transition: var(--transition);
+    }
+
+    .stat-card-v2:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+
+    .stat-card-v2 .stat-value {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--primary);
+      line-height: 1;
+      letter-spacing: -.04em;
+    }
+
+    .stat-card-v2 .stat-label {
+      font-size: .72rem;
+      color: var(--muted);
+      margin-top: 8px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    .stat-card-v2::after {
+      content: '';
+      position: absolute;
+      bottom: -20px; right: -20px;
+      width: 80px; height: 80px;
+      border-radius: 50%;
+      opacity: .06;
+    }
+
+    .stat-blue::before  { background: var(--accent); }
+    .stat-green::before { background: var(--success); }
+    .stat-red::before   { background: var(--danger); }
+
+    .stat-blue  { border-left: 4px solid var(--accent); }
+    .stat-green { border-left: 4px solid var(--success); }
+    .stat-red   { border-left: 4px solid var(--danger); }
+
+    .section-title-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1.5px solid var(--border-light);
+    }
+
+    .section-title-bar h2 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--primary);
+      letter-spacing: -.01em;
+    }
+
+    .section-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+  </style>
 </head>
 <body>
+
 <nav class="navbar">
-  <div class="nav-brand">🚀 <span>HireWalk</span></div>
+  <a class="nav-brand" href="../index.html">
+    <div class="nav-brand-icon">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round">
+        <path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
+        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+      </svg>
+    </div>
+    Hire<span>Walk</span>
+  </a>
   <div class="nav-links" id="nav-right"></div>
 </nav>
 
 <div class="page" id="main">
-  <div style="text-align:center;padding:60px;color:var(--muted)">
-    <span class="spinner" style="border-top-color:var(--primary);width:32px;height:32px"></span>
-    <p style="margin-top:12px">Loading...</p>
+  <div style="text-align:center;padding:80px 20px">
+    <span class="spinner spinner-dark" style="width:28px;height:28px"></span>
+    <p style="margin-top:12px;color:var(--muted);font-size:.875rem">Loading your bookings...</p>
   </div>
 </div>
 
@@ -26,10 +167,18 @@
   Auth.requireAuth('user');
 
   document.getElementById('nav-right').innerHTML = `
-    <button class="nav-btn outline" onclick="location.href='browse.html'">Browse</button>
-    <button class="nav-btn outline" onclick="location.href='mock-interview.html'">🤖 Mock AI</button>
-    <span style="color:rgba(255,255,255,.7);font-size:.875rem">👤 ${user?.name}</span>
-    <button class="nav-btn solid" onclick="Auth.logout()">Logout</button>
+    <button class="nav-btn ghost" onclick="location.href='browse.html'">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      Browse
+    </button>
+    <button class="nav-btn ghost" onclick="location.href='mock-interview.html'">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/></svg>
+      AI Mock
+    </button>
+    <span style="color:rgba(255,255,255,.65);font-size:.825rem;font-weight:500">
+      ${user?.name}
+    </span>
+    <button class="nav-btn filled" onclick="Auth.logout()">Logout</button>
   `;
 
   async function load() {
@@ -42,72 +191,122 @@
 
       main.innerHTML = `
         <div class="page-header">
-          <div><h1>My Bookings</h1><p>Track and manage your interview slots</p></div>
-          <button class="btn btn-primary" onclick="location.href='browse.html'">Browse Interviews</button>
+          <div>
+            <h1>My Bookings</h1>
+            <p>Track and manage your interview slots</p>
+          </div>
+          <button class="btn btn-primary" onclick="location.href='browse.html'">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            Browse Interviews
+          </button>
         </div>
 
-        <div class="stats-grid">
-          <div class="stat-card">
+        <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:36px">
+          <div class="stat-card-v2 stat-blue">
             <div class="stat-value">${bookings.length}</div>
             <div class="stat-label">Total Bookings</div>
           </div>
-          <div class="stat-card" style="border-color:var(--success)">
+          <div class="stat-card-v2 stat-green">
             <div class="stat-value">${active.length}</div>
             <div class="stat-label">Active</div>
           </div>
-          <div class="stat-card" style="border-color:var(--danger)">
+          <div class="stat-card-v2 stat-red">
             <div class="stat-value">${cancelled.length}</div>
             <div class="stat-label">Cancelled</div>
           </div>
         </div>
 
         ${active.length ? `
-          <h2 style="font-size:1.15rem;font-weight:700;color:var(--primary);margin-bottom:16px">📌 Active Booking</h2>
-          ${active.map(renderBookingCard).join('')}
-          <div style="margin-bottom:32px"></div>
+          <div class="section-title-bar">
+            <div class="section-dot" style="background:var(--success)"></div>
+            <h2>Active Booking</h2>
+            <span class="badge badge-success">Confirmed</span>
+          </div>
+          ${active.map(renderCard).join('')}
+          <div style="height:32px"></div>
         ` : ''}
 
-        <h2 style="font-size:1.15rem;font-weight:700;color:var(--primary);margin-bottom:16px">📋 Booking History</h2>
-        ${bookings.length === 0
-          ? `<div class="empty-state"><div class="icon">📭</div><h3>No bookings yet</h3><p>Browse interviews and book your first slot</p><br><button class="btn btn-primary" onclick="location.href='browse.html'">Browse Interviews</button></div>`
-          : bookings.filter(b => b.status !== 'confirmed').map(renderBookingCard).join('') || '<p style="color:var(--muted);padding:20px 0">No past bookings.</p>'
+        <div class="section-title-bar">
+          <div class="section-dot" style="background:var(--muted)"></div>
+          <h2>Booking History</h2>
+        </div>
+
+        ${bookings.length === 0 ? `
+          <div class="empty-state">
+            <div class="empty-icon">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
+            <h3>No bookings yet</h3>
+            <p>Browse interviews and book your first slot</p>
+            <br>
+            <button class="btn btn-primary" onclick="location.href='browse.html'">Browse Interviews</button>
+          </div>
+        ` : bookings.filter(b => b.status !== 'confirmed').length === 0
+          ? `<p style="color:var(--muted);font-size:.875rem;padding:16px 0">No past bookings yet.</p>`
+          : bookings.filter(b => b.status !== 'confirmed').map(renderCard).join('')
         }
       `;
     } catch (err) {
-      main.innerHTML = `<div class="alert alert-error">⚠️ ${err.message}</div>`;
+      main.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
     }
   }
 
-  function renderBookingCard(b) {
-    const badgeMap = { confirmed: 'badge-success', cancelled: 'badge-danger', completed: 'badge-warning' };
+  function renderCard(b) {
+    const statusMap = {
+      confirmed: { cls: 'badge-success', label: 'Confirmed' },
+      cancelled:  { cls: 'badge-danger',  label: 'Cancelled'  },
+      completed:  { cls: 'badge-warning', label: 'Completed'  },
+    };
+    const s = statusMap[b.status] || { cls: 'badge-muted', label: b.status };
+
     return `
-      <div class="card" style="margin-bottom:16px">
-        <div class="card-body">
-          <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:10px">
-            <div>
-              <h3 style="font-size:1.05rem;font-weight:700;color:var(--primary)">${b.role}</h3>
-              <p style="color:var(--muted);font-size:.875rem">🏢 ${b.company_name}</p>
-            </div>
-            <span class="badge ${badgeMap[b.status] || 'badge-muted'}">${b.status}</span>
+      <div class="booking-card">
+        <div class="booking-card-header">
+          <div>
+            <h3>${b.role}</h3>
+            <p>${b.company_name}</p>
           </div>
-          <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:12px">
-            <div class="detail-row">📅 <span>${b.interview_date}</span></div>
-            <div class="detail-row">⏰ <span>${b.slot_time}</span></div>
-            <div class="detail-row">💰 <span>${b.package || '—'}</span></div>
-            ${b.location ? `<div class="detail-row">📍 <span>${b.location}</span></div>` : ''}
+          <span class="badge ${s.cls}">${s.label}</span>
+        </div>
+        <div class="booking-card-body">
+          <div class="booking-meta">
+            <div class="booking-meta-item">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              <span>${b.interview_date}</span>
+            </div>
+            <div class="booking-meta-item">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <span>${b.slot_time}</span>
+            </div>
+            ${b.package ? `
+            <div class="booking-meta-item">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              <span>${b.package}</span>
+            </div>` : ''}
+            ${b.location ? `
+            <div class="booking-meta-item">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              <span>${b.location}</span>
+            </div>` : ''}
           </div>
           ${b.status === 'confirmed' ? `
-            <div style="margin-top:14px;display:flex;gap:8px">
-              <button class="btn btn-danger btn-sm" onclick="cancel(${b.id}, this)">Cancel Booking</button>
-              <button class="btn btn-primary btn-sm" onclick="location.href='mock-interview.html'">🤖 Practice Now</button>
+            <div class="booking-actions">
+              <button class="btn btn-danger btn-sm" onclick="cancelBooking(${b.id}, this)">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                Cancel Booking
+              </button>
+              <button class="btn btn-primary btn-sm" onclick="location.href='mock-interview.html'">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/></svg>
+                Practice with AI
+              </button>
             </div>
           ` : ''}
         </div>
       </div>`;
   }
 
-  async function cancel(id, btn) {
-    if (!confirm('Cancel this booking?')) return;
+  async function cancelBooking(id, btn) {
+    if (!confirm('Are you sure you want to cancel this booking?')) return;
     setLoading(btn, true, 'Cancelling...');
     try {
       await Api.cancelBooking(id);

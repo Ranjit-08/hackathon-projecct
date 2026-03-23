@@ -1,13 +1,11 @@
 from flask import Blueprint, request, jsonify
-import bcrypt, random, time
+import bcrypt, random, json
+from datetime import datetime, timedelta
 from database import query
 from utils.jwt_helper import generate_token
 from utils.email import send_otp_email
 
 auth_bp = Blueprint('auth', __name__)
-
-# In-memory OTP store {email: {otp, name, password, phone, skills, expires}}
-otp_store = {}
 
 def _hash(password):
     return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
@@ -17,6 +15,29 @@ def _verify(password, hashed):
 
 def _gen_otp():
     return str(random.randint(100000, 999999))
+
+def _save_otp(key, otp, data):
+    expires = (datetime.utcnow() + timedelta(minutes=10)).strftime('%Y-%m-%d %H:%M:%S')
+    # Delete existing
+    query('DELETE FROM otp_store WHERE key_name=%s', (key,), fetch=False)
+    # Insert new
+    query(
+        'INSERT INTO otp_store (key_name, otp, data, expires_at) VALUES (%s,%s,%s,%s)',
+        (key, otp, json.dumps(data), expires), fetch=False
+    )
+
+def _get_otp(key):
+    rows = query('SELECT * FROM otp_store WHERE key_name=%s', (key,))
+    if not rows:
+        return None, 'No OTP found. Please register again.'
+    rec = rows[0]
+    if datetime.utcnow() > rec['expires_at']:
+        query('DELETE FROM otp_store WHERE key_name=%s', (key,), fetch=False)
+        return None, 'OTP expired. Please register again.'
+    return rec, None
+
+def _delete_otp(key):
+    query('DELETE FROM otp_store WHERE key_name=%s', (key,), fetch=False)
 
 # ── Company Auth ──────────────────────────────────────────────────────────────
 
@@ -36,13 +57,13 @@ def company_send_otp():
         return jsonify({'error': 'Email already registered'}), 409
 
     otp = _gen_otp()
-    otp_store[f'company_{email}'] = {
-        'otp': otp, 'name': name, 'password': pwd,
-        'phone': phone, 'expires': time.time() + 600
-    }
+    _save_otp(f'company_{email}', otp, {
+        'name': name, 'password': pwd, 'phone': phone
+    })
+
     sent = send_otp_email(email, name, otp)
     if not sent:
-        return jsonify({'error': 'Failed to send OTP email. Check SMTP settings.'}), 500
+        return jsonify({'error': 'Failed to send OTP. Check SMTP settings.'}), 500
     return jsonify({'message': f'OTP sent to {email}'})
 
 @auth_bp.route('/company/verify-otp', methods=['POST'])
@@ -50,24 +71,25 @@ def company_verify_otp():
     d     = request.get_json() or {}
     email = d.get('email', '').strip().lower()
     otp   = d.get('otp', '').strip()
-    key   = f'company_{email}'
 
-    if key not in otp_store:
-        return jsonify({'error': 'No OTP found. Please register again.'}), 400
-    rec = otp_store[key]
-    if time.time() > rec['expires']:
-        del otp_store[key]
-        return jsonify({'error': 'OTP expired. Please register again.'}), 400
+    rec, err = _get_otp(f'company_{email}')
+    if err:
+        return jsonify({'error': err}), 400
     if rec['otp'] != otp:
-        return jsonify({'error': 'Invalid OTP'}), 400
+        return jsonify({'error': 'Invalid OTP. Please try again.'}), 400
+
+    data = json.loads(rec['data'])
+    _delete_otp(f'company_{email}')
 
     cid = query(
         'INSERT INTO companies (name, email, password_hash, phone) VALUES (%s,%s,%s,%s)',
-        (rec['name'], email, _hash(rec['password']), rec['phone']), fetch=False
+        (data['name'], email, _hash(data['password']), data['phone']), fetch=False
     )
-    del otp_store[key]
-    token = generate_token({'id': cid, 'role': 'company', 'name': rec['name'], 'email': email})
-    return jsonify({'token': token, 'user': {'id': cid, 'name': rec['name'], 'email': email, 'role': 'company'}}), 201
+    token = generate_token({'id': cid, 'role': 'company', 'name': data['name'], 'email': email})
+    return jsonify({
+        'token': token,
+        'user': {'id': cid, 'name': data['name'], 'email': email, 'role': 'company'}
+    }), 201
 
 @auth_bp.route('/company/login', methods=['POST'])
 def company_login():
@@ -100,13 +122,13 @@ def user_send_otp():
         return jsonify({'error': 'Email already registered'}), 409
 
     otp = _gen_otp()
-    otp_store[f'user_{email}'] = {
-        'otp': otp, 'name': name, 'password': pwd,
-        'phone': phone, 'skills': skills, 'expires': time.time() + 600
-    }
+    _save_otp(f'user_{email}', otp, {
+        'name': name, 'password': pwd, 'phone': phone, 'skills': skills
+    })
+
     sent = send_otp_email(email, name, otp)
     if not sent:
-        return jsonify({'error': 'Failed to send OTP email. Check SMTP settings.'}), 500
+        return jsonify({'error': 'Failed to send OTP. Check SMTP settings.'}), 500
     return jsonify({'message': f'OTP sent to {email}'})
 
 @auth_bp.route('/user/verify-otp', methods=['POST'])
@@ -114,24 +136,25 @@ def user_verify_otp():
     d     = request.get_json() or {}
     email = d.get('email', '').strip().lower()
     otp   = d.get('otp', '').strip()
-    key   = f'user_{email}'
 
-    if key not in otp_store:
-        return jsonify({'error': 'No OTP found. Please register again.'}), 400
-    rec = otp_store[key]
-    if time.time() > rec['expires']:
-        del otp_store[key]
-        return jsonify({'error': 'OTP expired. Please register again.'}), 400
+    rec, err = _get_otp(f'user_{email}')
+    if err:
+        return jsonify({'error': err}), 400
     if rec['otp'] != otp:
-        return jsonify({'error': 'Invalid OTP'}), 400
+        return jsonify({'error': 'Invalid OTP. Please try again.'}), 400
+
+    data = json.loads(rec['data'])
+    _delete_otp(f'user_{email}')
 
     uid = query(
         'INSERT INTO users (name, email, password_hash, phone, skills) VALUES (%s,%s,%s,%s,%s)',
-        (rec['name'], email, _hash(rec['password']), rec['phone'], rec['skills']), fetch=False
+        (data['name'], email, _hash(data['password']), data['phone'], data['skills']), fetch=False
     )
-    del otp_store[key]
-    token = generate_token({'id': uid, 'role': 'user', 'name': rec['name'], 'email': email})
-    return jsonify({'token': token, 'user': {'id': uid, 'name': rec['name'], 'email': email, 'role': 'user'}}), 201
+    token = generate_token({'id': uid, 'role': 'user', 'name': data['name'], 'email': email})
+    return jsonify({
+        'token': token,
+        'user': {'id': uid, 'name': data['name'], 'email': email, 'role': 'user'}
+    }), 201
 
 @auth_bp.route('/user/login', methods=['POST'])
 def user_login():

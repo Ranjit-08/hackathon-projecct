@@ -731,7 +731,9 @@
     try {
       await Api.book({ interview_id: currentInterview.id, slot_id: selectedSlotId });
       closeModal();
-      showAlert(document.getElementById('active-banner'), 'Booking confirmed! Check your email for details.', 'success');
+
+      // Show success toast
+      showToast('Booking confirmed! Check your email for details.');
       load();
     } catch (err) {
       showAlert(document.getElementById('modal-alert'), err.message);
@@ -739,7 +741,6 @@
       setLoading(btn, false);
     }
   }
-
   // Close modal on overlay click
   document.getElementById('book-modal').addEventListener('click', function(e) {
     if (e.target === this) closeModal();

@@ -70,16 +70,17 @@ jobs:
             GROQ_MODEL=llama-3.3-70b-versatile
             DEBUG=False
             PORT=5000
-            FRONTEND_URL=*
+            FRONTEND_URL=${{ secrets.CF_URL }}
             EOF
 
             echo "====== STEP 6: Init Database ======"
             mysql -h ${{ secrets.DB_HOST }} -u ${{ secrets.DB_USER }} -p${{ secrets.DB_PASSWORD }} walkin_platform < /home/ec2-user/hackathon-projecct/database/schema.sql 2>/dev/null || echo "Tables may already exist"
 
             echo "====== STEP 7: Fix Frontend API URL ======"
-            EC2_IP="${{ secrets.EC2_HOST }}"
-            sed -i "s|http://YOUR_EC2_PUBLIC_IP/api|http://$EC2_IP/api|g" /home/ec2-user/hackathon-projecct/frontend/js/api.js
-
+            CF_URL="${{ secrets.CF_URL }}"
+            sed -i "s|http://YOUR_EC2_PUBLIC_IP/api|$CF_URL/api|g" \
+              /home/ec2-user/hackathon-projecct/frontend/js/api.js
+            echo "API URL set to: $CF_URL/api"
             echo "====== STEP 8: Deploy Frontend ======"
             sudo mkdir -p /var/www/walkin-frontend
             sudo cp -r /home/ec2-user/hackathon-projecct/frontend/* /var/www/walkin-frontend/

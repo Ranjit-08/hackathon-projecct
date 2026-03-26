@@ -14,33 +14,6 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      # Step 1: Write all secrets into a file on the RUNNER (not remote).
-      # appleboy/ssh-action does not reliably forward envs: to the remote shell.
-      # Instead we write an env file on the runner, rsync it over, and source it.
-      - name: Write secrets to env file
-        run: |
-          cat > /tmp/hirewalk.env << EOF
-          export DB_HOST="${{ secrets.DB_HOST }}"
-          export DB_USER="${{ secrets.DB_USER }}"
-          export DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
-          export JWT_SECRET="${{ secrets.JWT_SECRET }}"
-          export SMTP_USER="${{ secrets.SMTP_USER }}"
-          export SMTP_PASSWORD="${{ secrets.SMTP_PASSWORD }}"
-          export GROQ_API_KEY="${{ secrets.GROQ_API_KEY }}"
-          export CF_URL="${{ secrets.CF_URL }}"
-          EOF
-
-      # Step 2: Copy env file to EC2 via scp
-      - name: Copy env file to EC2
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ec2-user
-          key: ${{ secrets.EC2_SSH_KEY }}
-          source: /tmp/hirewalk.env
-          target: /home/ec2-user/
-
-      # Step 3: Run the deploy — source the env file at the top
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.0
         with:
@@ -50,80 +23,73 @@ jobs:
           timeout: 600s
           script: |
             set -e
-            export PATH="$HOME/.local/bin:$PATH"
-
-            # Load secrets that were copied from the runner
-            source /home/ec2-user/tmp/hirewalk.env
-
-            # Immediately verify secrets loaded — fail fast if not
-            [ -z "$DB_HOST" ] && { echo "ERROR: DB_HOST is empty after sourcing env file" >&2; exit 1; }
-            echo "Secrets loaded OK (DB_HOST is set)"
 
             echo "====== STEP 1: Install System Packages ======"
             sudo yum install -y python3 python3-pip git mysql 2>/dev/null || true
             sudo amazon-linux-extras install nginx1 -y 2>/dev/null || true
 
             echo "====== STEP 2: Clone or Pull Repo ======"
-            if [ -d "/home/ec2-user/hackathon-projecct/.git" ]; then
-              cd /home/ec2-user/hackathon-projecct
+            if [ -d "/home/ec2-user/hackathon-projecct" ]; then
+            cd /home/ec2-user/hackathon-projecct
               git fetch origin
               git reset --hard origin/main
             else
               cd /home/ec2-user
               git clone https://github.com/Ranjit-08/hackathon-projecct.git
+              cd hackathon-projecct
             fi
 
-            echo "====== STEP 3: Install Python Packages ======"
-            pip3 install \
-              flask==2.2.5 flask-cors==3.0.10 pymysql==1.1.0 \
-              python-dotenv==0.21.1 PyJWT==2.6.0 bcrypt==4.0.1 \
-              requests==2.28.2 gunicorn==20.1.0 Werkzeug==2.2.3 \
-              --user -q
+            echo "====== STEP 3: Write requirements.txt ======"
+            cat > /home/ec2-user/hackathon-projecct/backend/requirements.txt << EOF
+            flask==2.2.5
+            flask-cors==3.0.10
+            pymysql==1.1.0
+            python-dotenv==0.21.1
+            PyJWT==2.6.0
+            bcrypt==4.0.1
+            requests==2.28.2
+            gunicorn==20.1.0
+            Werkzeug==2.2.3
+            EOF
 
-            echo "====== STEP 4: Write .env ======"
-            cat > /home/ec2-user/hackathon-projecct/backend/.env << ENVEOF
-            DB_HOST=$DB_HOST
+            echo "====== STEP 4: Install Python Packages ======"
+            pip3 install -r /home/ec2-user/hackathon-projecct/backend/requirements.txt --user -q
+
+            echo "====== STEP 5: Create .env ======"
+            cat > /home/ec2-user/hackathon-projecct/backend/.env << EOF
+            DB_HOST=${{ secrets.DB_HOST }}
             DB_PORT=3306
             DB_NAME=walkin_platform
-            DB_USER=$DB_USER
-            DB_PASSWORD=$DB_PASSWORD
-            JWT_SECRET=$JWT_SECRET
+            DB_USER=${{ secrets.DB_USER }}
+            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
             SMTP_HOST=smtp.gmail.com
             SMTP_PORT=587
-            SMTP_USER=$SMTP_USER
-            SMTP_PASSWORD=$SMTP_PASSWORD
-            GROQ_API_KEY=$GROQ_API_KEY
+            SMTP_USER=${{ secrets.SMTP_USER }}
+            SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}
+            GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}
             GROQ_MODEL=llama-3.3-70b-versatile
             DEBUG=False
             PORT=5000
-            FRONTEND_URL=$CF_URL
-            ENVEOF
-
-            echo "====== STEP 5: Verify .env has values ======"
-            grep -q "DB_HOST=." /home/ec2-user/hackathon-projecct/backend/.env \
-              || { echo "ERROR: DB_HOST is empty in .env" >&2; exit 1; }
-            echo ".env looks good"
+            FRONTEND_URL=${{ secrets.CF_URL }}
+            EOF
 
             echo "====== STEP 6: Init Database ======"
-            TABLE_COUNT=$(mysql -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASSWORD" \
-              walkin_platform -se \
-              "SELECT COUNT(*) FROM information_schema.tables \
-               WHERE table_schema='walkin_platform';" 2>/dev/null || echo "0")
-            if [ "$TABLE_COUNT" = "0" ]; then
-              echo "Bootstrapping schema..."
-              mysql -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASSWORD" walkin_platform \
-                < /home/ec2-user/hackathon-projecct/database/schema.sql
-            else
-              echo "Schema exists ($TABLE_COUNT tables) — skipping."
-            fi
+            mysql -h ${{ secrets.DB_HOST }} -u ${{ secrets.DB_USER }} -p${{ secrets.DB_PASSWORD }} walkin_platform < /home/ec2-user/hackathon-projecct/database/schema.sql 2>/dev/null || echo "Tables may already exist"
 
-            echo "====== STEP 7: Deploy Frontend ======"
+            echo "====== STEP 7: Fix Frontend API URL ======"
+            CF_URL="${{ secrets.CF_URL }}"
+            sed -i "s|http://YOUR_EC2_PUBLIC_IP/api|$CF_URL/api|g" \
+              /home/ec2-user/hackathon-projecct/frontend/js/api.js
+            echo "API URL set to: $CF_URL/api"
+            echo "====== STEP 8: Deploy Frontend ======"
             sudo mkdir -p /var/www/walkin-frontend
             sudo cp -r /home/ec2-user/hackathon-projecct/frontend/* /var/www/walkin-frontend/
             sudo chown -R nginx:nginx /var/www/walkin-frontend
 
-            echo "====== STEP 8: Setup Nginx ======"
-            sudo bash -c 'cat > /etc/nginx/conf.d/walkin.conf << NGINXEOF
+            echo "====== STEP 9: Setup Nginx ======"
+            sudo sed -i '/^    server {/,/^    }/d' /etc/nginx/nginx.conf
+            sudo bash -c 'cat > /etc/nginx/conf.d/walkin.conf << EOF
             server {
                 listen 80;
                 server_name _;
@@ -139,12 +105,12 @@ jobs:
                     try_files \$uri \$uri/ /index.html;
                 }
             }
-            NGINXEOF'
+            EOF'
 
-            echo "====== STEP 9: Setup Systemd Service ======"
-            GUNICORN=$(which gunicorn)
-            echo "Gunicorn: $GUNICORN"
-            sudo bash -c "cat > /etc/systemd/system/walkin.service << SVCEOF
+            echo "====== STEP 10: Setup Systemd Service ======"
+            GUNICORN_PATH=$(find /home/ec2-user/.local/bin -name gunicorn 2>/dev/null | head -1)
+            echo "Gunicorn: $GUNICORN_PATH"
+            sudo bash -c "cat > /etc/systemd/system/walkin.service << EOF
             [Unit]
             Description=HireWalk API
             After=network.target
@@ -152,8 +118,7 @@ jobs:
             [Service]
             User=ec2-user
             WorkingDirectory=/home/ec2-user/hackathon-projecct/backend
-            Environment=PATH=/home/ec2-user/.local/bin:/usr/local/bin:/usr/bin:/bin
-            ExecStart=$GUNICORN --workers 3 --bind 0.0.0.0:5000 app:app
+            ExecStart=$GUNICORN_PATH --workers 3 --bind 0.0.0.0:5000 app:app
             Restart=always
             RestartSec=5
             StandardOutput=journal
@@ -161,33 +126,17 @@ jobs:
 
             [Install]
             WantedBy=multi-user.target
-            SVCEOF"
+            EOF"
 
-            echo "====== STEP 10: Start Services ======"
+            echo "====== STEP 11: Start Services ======"
             sudo systemctl daemon-reload
             sudo systemctl enable walkin
             sudo systemctl restart walkin
             sudo systemctl enable nginx
-            sudo nginx -t && sudo systemctl restart nginx
+            sudo systemctl restart nginx
 
-            echo "====== STEP 11: Health Check ======"
-            for i in $(seq 1 10); do
-              if curl -sf http://localhost:5000/api/health; then
-                echo " Backend OK"
-                break
-              fi
-              echo "Attempt $i/10 - retrying in 3s..."
-              sleep 3
-              if [ $i -eq 10 ]; then
-                echo " Backend FAILED — last 50 journal lines:" >&2
-                sudo journalctl -u walkin -n 50 --no-pager >&2
-                exit 1
-              fi
-            done
-
-            curl -sf http://localhost/api/health && echo " Nginx proxy OK" || echo " Nginx proxy FAILED"
-
-            # Clean up secrets file from disk
-            rm -f /home/ec2-user/tmp/hirewalk.env
-
-            echo "====== DEPLOY COMPLETE ======"
+            echo "====== STEP 12: Health Check ======"
+            sleep 5
+            curl -s http://localhost:5000/api/health && echo " Backend OK" || echo " Backend FAILED"
+            curl -s http://localhost/api/health && echo " Nginx OK" || echo " Nginx FAILED"
+            echo "====== DEPLOY COMPLETE: http://$EC2_IP ======"

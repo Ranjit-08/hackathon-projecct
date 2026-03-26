@@ -86,20 +86,20 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       </button>
 
-      <div style="text-align:center;margin-top:24px;font-size:.85rem;color:var(--muted)">
+      <div style="text-align:center;margin-top:24px;font-size:.85rem;color:var(--ink-soft)">
         New company?
-        <a href="register.html" style="color:#6ee7b7;font-weight:600;margin-left:4px">Register here</a>
+        <a href="register.html" style="color:#059669;font-weight:600;margin-left:4px">Register here</a>
       </div>
 
       <div style="position:relative;margin:28px 0;display:flex;align-items:center;gap:12px">
-        <div style="flex:1;height:1px;background:var(--glass-border)"></div>
-        <span style="font-size:.75rem;color:var(--muted)">or</span>
-        <div style="flex:1;height:1px;background:var(--glass-border)"></div>
+        <div style="flex:1;height:1px;background:var(--border)"></div>
+        <span style="font-size:.75rem;color:var(--ink-faint)">or</span>
+        <div style="flex:1;height:1px;background:var(--border)"></div>
       </div>
 
-      <div style="text-align:center;font-size:.845rem;color:var(--muted)">
+      <div style="text-align:center;font-size:.845rem;color:var(--ink-soft)">
         Looking for a job?
-        <a href="../user/login.html" style="color:#93c5fd;font-weight:600;margin-left:4px">Candidate login</a>
+        <a href="../user/login.html" style="color:var(--accent);font-weight:600;margin-left:4px">Candidate login</a>
       </div>
     </div>
   </div>
@@ -127,7 +127,8 @@
 
     setLoading(btn, true, 'Signing in...');
     try {
-      const { token, user } = await Api.login('company', { email, password });
+      // ✅ Fixed: was Api.login('company', {...}) — correct function is Api.companyLogin()
+      const { token, user } = await Api.companyLogin({ email, password });
       Auth.save(token, user);
       document.body.classList.add('page-leaving');
       setTimeout(() => { window.location.href = 'dashboard.html'; }, 220);

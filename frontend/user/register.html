@@ -38,32 +38,20 @@
       box-shadow: 0 0 10px var(--accent-glow);
     }
 
-    .step-dot.done {
-      background: var(--success);
-    }
-
-    .step-dot.pending {
-      background: var(--glass-border-2);
-    }
+    .step-dot.done  { background: var(--success); }
+    .step-dot.pending { background: var(--cream-4); }
 
     .otp-display {
-      background: rgba(37,99,235,.06);
-      border: 1px solid rgba(37,99,235,.2);
+      background: var(--accent-light);
+      border: 1px solid var(--accent-border);
       border-radius: var(--r-sm);
       padding: 14px;
       text-align: center;
       margin-bottom: 20px;
     }
 
-    .otp-display p {
-      font-size: .845rem;
-      color: var(--muted);
-    }
-
-    .otp-display strong {
-      color: #93c5fd;
-      font-weight: 700;
-    }
+    .otp-display p { font-size: .845rem; color: var(--ink-soft); }
+    .otp-display strong { color: var(--accent); font-weight: 700; }
   </style>
 </head>
 <body>
@@ -194,9 +182,9 @@
         </button>
       </div>
 
-      <div style="text-align:center;margin-top:24px;font-size:.845rem;color:var(--muted)">
+      <div style="text-align:center;margin-top:24px;font-size:.845rem;color:var(--ink-soft)">
         Already have an account?
-        <a href="login.html" style="color:#93c5fd;font-weight:600;margin-left:4px">Sign in</a>
+        <a href="login.html" style="color:var(--accent);font-weight:600;margin-left:4px">Sign in</a>
       </div>
     </div>
   </div>
@@ -214,6 +202,7 @@
     document.getElementById('dot-1').classList.remove('done');
     document.getElementById('dot-2').classList.remove('active');
     document.getElementById('dot-2').classList.add('pending');
+    document.getElementById('alert').innerHTML = '';
   }
 
   async function sendOtp() {
@@ -230,9 +219,15 @@
       return;
     }
 
+    if (password.length < 6) {
+      showAlert(alertEl, 'Password must be at least 6 characters');
+      return;
+    }
+
     setLoading(btn, true, 'Sending OTP...');
     try {
-      await Api.sendOtp('user', { name, email, password, phone, skills });
+      // ✅ Fixed: was Api.sendOtp('user', {...}) — correct function is Api.userRegister()
+      await Api.userRegister({ name, email, password, phone, skills });
       document.getElementById('email-display').textContent = email;
       document.getElementById('reg-form').style.display = 'none';
       document.getElementById('otp-form').classList.add('show');
@@ -261,8 +256,10 @@
 
     setLoading(btn, true, 'Verifying...');
     try {
-      const { token, user } = await Api.verifyOtp('user', { email, otp });
+      // ✅ Fixed: was Api.verifyOtp('user', {...}) — correct function is Api.userVerifyOtp()
+      const { token, user } = await Api.userVerifyOtp({ email, otp });
       Auth.save(token, user);
+      showAlert(alertEl, 'Account created! Redirecting…', 'success');
       document.body.classList.add('page-leaving');
       setTimeout(() => { window.location.href = 'browse.html'; }, 220);
     } catch (err) {

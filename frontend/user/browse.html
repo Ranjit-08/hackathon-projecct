@@ -6,10 +6,10 @@
   <title>Browse Interviews — HireWalk</title>
   <link rel="stylesheet" href="../css/style.css"/>
   <style>
-    /* ── Page Hero Banner ── */
+    /* ── Hero Banner ── */
     .browse-hero {
-      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-mid) 60%, #1e40af 100%);
-      padding: 40px 24px 80px;
+      background: linear-gradient(135deg, var(--ink) 0%, var(--ink-mid) 100%);
+      padding: 48px 24px 88px;
       position: relative;
       overflow: hidden;
     }
@@ -17,9 +17,19 @@
     .browse-hero::before {
       content: '';
       position: absolute; inset: 0;
-      background-image: linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px),
-                        linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
-      background-size: 40px 40px;
+      background-image:
+        linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
+      background-size: 44px 44px;
+    }
+
+    .browse-hero::after {
+      content: '';
+      position: absolute;
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(200,98,42,.2) 0%, transparent 70%);
+      bottom: -100px; right: -60px;
+      pointer-events: none;
     }
 
     .browse-hero-content {
@@ -31,36 +41,42 @@
 
     .browse-hero h1 {
       font-family: var(--font-display);
-      font-size: 2rem;
+      font-size: 2.2rem;
       font-weight: 700;
       color: #fff;
-      letter-spacing: -.02em;
-      margin-bottom: 6px;
+      letter-spacing: -.04em;
+      margin-bottom: 8px;
+      line-height: 1.2;
     }
 
-    .browse-hero p { color: rgba(255,255,255,.65); font-size: .9rem; }
+    .browse-hero h1 em { font-style: italic; color: var(--accent-2); }
+    .browse-hero p { color: rgba(255,255,255,.5); font-size: .9rem; }
 
-    /* ── Search Bar (overlapping hero) ── */
+    /* ── Search Bar ── */
     .search-wrap {
       max-width: 1100px;
-      margin: -28px auto 0;
+      margin: -32px auto 0;
       padding: 0 24px;
       position: relative;
       z-index: 10;
     }
 
     .search-box {
-      background: #fff;
-      border-radius: var(--radius);
-      box-shadow: 0 8px 32px rgba(15,31,61,.18);
+      background: var(--surface);
+      border-radius: var(--r);
+      box-shadow: var(--shadow-lg);
       padding: 6px 6px 6px 20px;
       display: flex;
       align-items: center;
       gap: 12px;
-      border: 1.5px solid var(--border);
+      border: 1px solid var(--border);
+      transition: var(--t);
     }
 
-    .search-box svg { color: var(--muted); flex-shrink: 0; }
+    .search-box:focus-within {
+      border-color: var(--accent-border);
+      box-shadow: var(--shadow-xl), 0 0 0 3px rgba(200,98,42,.08);
+    }
 
     .search-box input {
       flex: 1;
@@ -68,45 +84,36 @@
       outline: none;
       font-size: .95rem;
       font-family: var(--font);
-      color: var(--text);
+      color: var(--ink);
       background: transparent;
-      padding: 8px 0;
+      padding: 10px 0;
     }
 
-    .search-box input::placeholder { color: var(--muted); }
+    .search-box input::placeholder { color: var(--ink-faint); }
 
-    .filter-pills {
-      display: flex;
-      gap: 8px;
-      flex-shrink: 0;
-      flex-wrap: wrap;
-    }
+    .filter-pills { display: flex; gap: 8px; flex-shrink: 0; }
 
     .filter-pill {
-      padding: 7px 14px;
+      padding: 8px 16px;
       border-radius: 99px;
       font-size: .775rem;
       font-weight: 600;
-      border: 1.5px solid var(--border);
-      background: var(--bg);
-      color: var(--muted);
+      border: 1px solid var(--border);
+      background: var(--cream-2);
+      color: var(--ink-soft);
       cursor: pointer;
-      transition: all .18s;
+      transition: var(--t-spring);
       font-family: var(--font);
       white-space: nowrap;
     }
 
-    .filter-pill:hover,
-    .filter-pill.active {
-      background: var(--primary);
-      color: #fff;
-      border-color: var(--primary);
-    }
+    .filter-pill:hover { border-color: var(--accent-border); color: var(--accent); }
+    .filter-pill.active { background: var(--accent); color: #fff; border-color: var(--accent-hover); box-shadow: 0 3px 10px var(--accent-glow); }
 
-    /* ── Main Content ── */
+    /* ── Content ── */
     .browse-content {
       max-width: 1100px;
-      margin: 32px auto;
+      margin: 36px auto 60px;
       padding: 0 24px;
     }
 
@@ -114,19 +121,11 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 20px;
+      margin-bottom: 24px;
     }
 
-    .results-count {
-      font-size: .825rem;
-      color: var(--muted);
-      font-weight: 500;
-    }
-
-    .results-count span {
-      color: var(--primary);
-      font-weight: 700;
-    }
+    .results-count { font-size: .85rem; color: var(--ink-soft); font-weight: 500; }
+    .results-count strong { color: var(--accent); font-weight: 700; }
 
     /* ── Interview Cards ── */
     .interviews-grid {
@@ -137,57 +136,103 @@
 
     .icard {
       background: var(--surface);
-      border-radius: var(--radius);
+      border-radius: var(--r);
       border: 1px solid var(--border);
       box-shadow: var(--shadow-sm);
       overflow: hidden;
-      transition: transform .22s, box-shadow .22s, border-color .22s;
+      transition: var(--t-spring);
       animation: cardIn .3s ease both;
+      display: flex;
+      flex-direction: column;
     }
 
     .icard:hover {
-      transform: translateY(-4px);
-      box-shadow: var(--shadow);
-      border-color: #bfdbfe;
+      transform: translateY(-5px);
+      box-shadow: var(--shadow-lg);
+      border-color: var(--border-2);
     }
 
     @keyframes cardIn {
-      from { opacity: 0; transform: translateY(12px); }
+      from { opacity: 0; transform: translateY(16px); }
       to   { opacity: 1; transform: translateY(0); }
     }
 
+    /* Card Header — dark with accent */
     .icard-header {
-      background: linear-gradient(135deg, var(--primary), var(--primary-mid));
-      padding: 20px 22px;
+      background: linear-gradient(135deg, var(--ink) 0%, var(--ink-mid) 100%);
+      padding: 22px 24px 20px;
       position: relative;
+      overflow: hidden;
     }
 
-    .icard-company {
-      font-size: .72rem;
-      color: rgba(255,255,255,.6);
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: .06em;
-      margin-bottom: 6px;
+    .icard-header::after {
+      content: '';
+      position: absolute;
+      bottom: -30px; right: -30px;
+      width: 120px; height: 120px;
+      background: radial-gradient(circle, rgba(200,98,42,.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* Company row */
+    .icard-company-row {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 10px;
+      margin-bottom: 12px;
     }
 
-    .company-dot {
-      width: 6px; height: 6px;
+    .company-logo {
+      width: 36px; height: 36px;
+      background: rgba(255,255,255,.1);
+      border: 1px solid rgba(255,255,255,.15);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-display);
+      font-size: .85rem;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .company-info { flex: 1; min-width: 0; }
+
+    .company-name {
+      font-size: .8rem;
+      font-weight: 700;
+      color: rgba(255,255,255,.9);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .company-status {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: .68rem;
+      color: #4ade80;
+      font-weight: 600;
+      margin-top: 1px;
+    }
+
+    .status-dot {
+      width: 5px; height: 5px;
       background: #4ade80;
       border-radius: 50%;
-      display: inline-block;
+      animation: pulse 2s infinite;
     }
+
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
 
     .icard-role {
       font-family: var(--font-display);
-      font-size: 1.15rem;
+      font-size: 1.2rem;
       font-weight: 700;
       color: #fff;
-      margin-bottom: 14px;
       line-height: 1.3;
+      margin-bottom: 14px;
+      letter-spacing: -.02em;
     }
 
     .icard-tags { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -198,153 +243,253 @@
       gap: 4px;
       padding: 4px 10px;
       border-radius: 99px;
-      font-size: .72rem;
+      font-size: .7rem;
       font-weight: 600;
-      background: rgba(255,255,255,.12);
-      color: rgba(255,255,255,.9);
-      border: 1px solid rgba(255,255,255,.15);
+      background: rgba(255,255,255,.1);
+      color: rgba(255,255,255,.85);
+      border: 1px solid rgba(255,255,255,.14);
     }
 
-    .icard-body { padding: 18px 22px; }
+    .itag-accent {
+      background: rgba(200,98,42,.25);
+      border-color: rgba(200,98,42,.4);
+      color: #ffb98a;
+    }
+
+    /* Card Body */
+    .icard-body {
+      padding: 18px 24px;
+      flex: 1;
+    }
+
+    /* Info rows */
+    .icard-info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .info-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .info-icon {
+      width: 28px; height: 28px;
+      background: var(--accent-light);
+      border: 1px solid var(--accent-border);
+      border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .info-text { flex: 1; min-width: 0; }
+
+    .info-label {
+      font-size: .62rem;
+      font-weight: 700;
+      color: var(--ink-faint);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    .info-value {
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--ink-mid);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
 
     .icard-desc {
-      font-size: .825rem;
-      color: var(--muted);
-      line-height: 1.6;
-      margin-bottom: 14px;
+      font-size: .8rem;
+      color: var(--ink-soft);
+      line-height: 1.65;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
     }
 
-    .icard-meta {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-bottom: 16px;
-    }
-
-    .icard-meta-item {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      font-size: .8rem;
-      color: var(--text-mid);
-    }
-
-    .icard-meta-item svg { color: var(--accent); flex-shrink: 0; }
-
+    /* Card Footer */
     .icard-footer {
-      padding: 14px 22px;
+      padding: 14px 24px;
       border-top: 1px solid var(--border);
-      background: #fafbff;
+      background: var(--cream-2);
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 10px;
     }
 
-    .slots-available {
-      font-size: .775rem;
-      color: var(--success);
-      font-weight: 600;
+    .slots-badge {
       display: flex;
       align-items: center;
       gap: 5px;
-    }
-
-    .slots-full {
       font-size: .775rem;
-      color: var(--danger);
       font-weight: 600;
     }
 
+    .slots-badge.open  { color: var(--success); }
+    .slots-badge.full  { color: var(--danger); }
+    .slots-badge.booked{ color: var(--accent); }
+
     /* ── Active Booking Banner ── */
     .active-banner {
-      background: linear-gradient(135deg, #fef9c3, #fef3c7);
-      border: 1px solid #fcd34d;
-      border-radius: var(--radius);
+      background: var(--warning-light);
+      border: 1px solid rgba(176,125,26,.25);
+      border-radius: var(--r);
       padding: 14px 18px;
       display: flex;
       align-items: center;
       gap: 12px;
-      margin-bottom: 24px;
+      margin-bottom: 28px;
     }
 
     .active-banner-icon {
       width: 36px; height: 36px;
-      background: #fcd34d;
-      border-radius: 10px;
+      background: rgba(176,125,26,.15);
+      border-radius: 9px;
       display: flex; align-items: center; justify-content: center;
       flex-shrink: 0;
     }
 
-    .active-banner p { font-size: .825rem; color: #78350f; flex: 1; line-height: 1.5; }
-    .active-banner strong { color: #451a03; }
+    .active-banner p { font-size: .83rem; color: var(--warning); flex: 1; line-height: 1.55; }
+    .active-banner strong { font-weight: 700; }
 
-    /* ── Modal ── */
+    /* ── Booking Modal ── */
     .book-modal {
-      background: #fff;
-      border-radius: var(--radius-lg);
+      background: var(--surface);
+      border-radius: var(--r-lg);
       width: 100%;
       max-width: 520px;
-      box-shadow: 0 24px 64px rgba(15,31,61,.25);
+      box-shadow: var(--shadow-xl);
       transform: translateY(16px) scale(.98);
-      transition: transform .25s, opacity .25s;
+      transition: transform .28s cubic-bezier(.34,1.56,.64,1), opacity .25s;
       overflow: hidden;
+      border: 1px solid var(--border);
     }
 
     .modal-overlay.active .book-modal { transform: translateY(0) scale(1); }
 
     .book-modal-header {
-      background: linear-gradient(135deg, var(--primary), var(--primary-mid));
-      padding: 22px 24px;
-      color: #fff;
+      background: linear-gradient(135deg, var(--ink) 0%, var(--ink-mid) 100%);
+      padding: 24px;
       display: flex;
       align-items: flex-start;
       justify-content: space-between;
       gap: 12px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .book-modal-header::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--gold));
+    }
+
+    .book-modal-header::after {
+      content: '';
+      position: absolute;
+      bottom: -40px; right: -40px;
+      width: 120px; height: 120px;
+      background: radial-gradient(circle, rgba(200,98,42,.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .modal-header-info { position: relative; z-index: 1; }
+
+    .modal-company-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 99px;
+      padding: 3px 10px;
+      font-size: .7rem;
+      font-weight: 600;
+      color: rgba(255,255,255,.7);
+      margin-bottom: 8px;
     }
 
     .book-modal-header h3 {
       font-family: var(--font-display);
-      font-size: 1.1rem;
+      font-size: 1.25rem;
       font-weight: 700;
+      color: #fff;
+      letter-spacing: -.02em;
+      margin-bottom: 4px;
     }
 
-    .book-modal-header p { font-size: .8rem; opacity: .7; margin-top: 3px; }
+    .modal-meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .modal-meta-chip {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: .75rem;
+      color: rgba(255,255,255,.6);
+      font-weight: 500;
+    }
 
     .modal-close-btn {
       width: 30px; height: 30px;
-      background: rgba(255,255,255,.15);
-      border: none;
-      border-radius: 8px;
-      color: #fff;
+      background: rgba(255,255,255,.1);
+      border: 1px solid rgba(255,255,255,.15);
+      border-radius: var(--r-xs);
+      color: rgba(255,255,255,.7);
       cursor: pointer;
       display: flex; align-items: center; justify-content: center;
+      transition: var(--t-spring);
       flex-shrink: 0;
-      transition: background .18s;
+      position: relative; z-index: 1;
     }
 
-    .modal-close-btn:hover { background: rgba(255,255,255,.25); }
+    .modal-close-btn:hover {
+      background: rgba(255,255,255,.2);
+      color: #fff;
+      transform: rotate(90deg) scale(1.1);
+    }
 
     .book-modal-body { padding: 24px; }
 
+    .slots-section-label {
+      font-size: .72rem;
+      font-weight: 700;
+      color: var(--ink-faint);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: 12px;
+    }
+
     .slot-pick-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
       gap: 8px;
-      margin: 16px 0 20px;
+      margin-bottom: 4px;
     }
 
     .slot-pick {
       padding: 12px;
-      border-radius: var(--radius-sm);
+      border-radius: var(--r-sm);
       border: 1.5px solid var(--border);
-      background: var(--bg);
+      background: var(--cream-2);
       cursor: pointer;
-      transition: all .18s;
+      transition: var(--t-spring);
       text-align: center;
       font-family: var(--font);
     }
@@ -352,81 +497,77 @@
     .slot-pick:hover:not(.slot-full) {
       border-color: var(--accent);
       background: var(--accent-light);
-      color: var(--accent);
+      transform: translateY(-2px);
     }
 
     .slot-pick.selected {
       border-color: var(--accent);
       background: var(--accent);
       color: #fff;
+      box-shadow: 0 3px 12px var(--accent-glow);
+      transform: scale(1.03);
     }
 
-    .slot-pick.slot-full {
-      opacity: .5;
-      cursor: not-allowed;
-    }
+    .slot-pick.slot-full { opacity: .4; cursor: not-allowed; }
 
-    .slot-time {
-      font-size: .825rem;
-      font-weight: 700;
-      color: inherit;
-      display: block;
-      margin-bottom: 3px;
-    }
-
-    .slot-cap {
-      font-size: .7rem;
-      color: inherit;
-      opacity: .75;
-    }
-
-    .slot-pick.selected .slot-cap { opacity: .85; }
+    .slot-time { font-size: .825rem; font-weight: 700; display: block; margin-bottom: 3px; }
+    .slot-cap  { font-size: .7rem; opacity: .75; display: block; }
+    .slot-pick.selected .slot-time,
+    .slot-pick.selected .slot-cap { color: #fff; }
 
     .book-modal-footer {
       padding: 16px 24px;
       border-top: 1px solid var(--border);
+      background: var(--cream-2);
       display: flex;
       gap: 10px;
-      background: #fafbff;
     }
 
-    /* ── Empty State ── */
+    /* ── Empty / Loading States ── */
     .empty-wrap {
       text-align: center;
       padding: 80px 20px;
+      grid-column: 1 / -1;
     }
 
     .empty-icon-wrap {
       width: 72px; height: 72px;
-      background: var(--bg);
-      border-radius: 20px;
+      background: var(--cream-2);
+      border-radius: var(--r-lg);
       border: 1px solid var(--border);
       display: flex; align-items: center; justify-content: center;
       margin: 0 auto 20px;
+      transition: var(--t-spring);
+    }
+
+    .empty-wrap:hover .empty-icon-wrap {
+      transform: translateY(-4px);
+      border-color: var(--accent-border);
+      background: var(--accent-light);
     }
 
     .empty-wrap h3 {
       font-family: var(--font-display);
       font-size: 1.15rem;
       font-weight: 700;
-      color: var(--primary);
+      color: var(--ink);
       margin-bottom: 8px;
+      letter-spacing: -.02em;
     }
 
-    .empty-wrap p { color: var(--muted); font-size: .875rem; }
+    .empty-wrap p { color: var(--ink-soft); font-size: .875rem; }
 
     @media (max-width: 640px) {
-      .search-box { flex-direction: column; align-items: stretch; padding: 12px 16px; }
-      .filter-pills { display: none; }
+      .search-box { flex-wrap: wrap; padding: 12px 16px; }
+      .filter-pills { width: 100%; }
       .interviews-grid { grid-template-columns: 1fr; }
-      .icard-meta { grid-template-columns: 1fr; }
-      .browse-hero { padding: 32px 20px 70px; }
+      .icard-info-grid { grid-template-columns: 1fr; }
+      .browse-hero { padding: 36px 20px 80px; }
     }
   </style>
 </head>
 <body>
 
-<!-- Navbar -->
 <nav class="navbar">
   <a class="nav-brand" href="../index.html">
     <div class="nav-brand-icon">
@@ -443,20 +584,20 @@
 <!-- Hero -->
 <div class="browse-hero">
   <div class="browse-hero-content">
-    <h1>Browse Walk-in Interviews</h1>
+    <h1>Browse Walk-in <em>Interviews</em></h1>
     <p>Discover opportunities from top companies — book your slot instantly</p>
   </div>
 </div>
 
-<!-- Search Bar -->
+<!-- Search -->
 <div class="search-wrap">
   <div class="search-box">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink-faint)" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
     <input type="text" id="search" placeholder="Search by role, company, or location..." oninput="filterCards()"/>
     <div class="filter-pills">
-      <button class="filter-pill active" onclick="setFilter('all', this)">All</button>
-      <button class="filter-pill" onclick="setFilter('today', this)">Today</button>
-      <button class="filter-pill" onclick="setFilter('week', this)">This Week</button>
+      <button class="filter-pill active" onclick="setFilter('all',this)">All</button>
+      <button class="filter-pill" onclick="setFilter('today',this)">Today</button>
+      <button class="filter-pill" onclick="setFilter('week',this)">This Week</button>
     </div>
   </div>
 </div>
@@ -467,10 +608,10 @@
   <!-- Active Booking Banner -->
   <div id="active-banner" style="display:none" class="active-banner">
     <div class="active-banner-icon">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#92400e" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
     </div>
     <p id="banner-text">You have an active booking.</p>
-    <button class="btn btn-ghost btn-sm" onclick="location.href='dashboard.html'" style="flex-shrink:0">View Booking</button>
+    <button class="btn btn-secondary btn-sm" onclick="location.href='dashboard.html'" style="flex-shrink:0">View Booking</button>
   </div>
 
   <!-- Results Header -->
@@ -485,8 +626,8 @@
   <!-- Grid -->
   <div id="interviews-grid">
     <div style="text-align:center;padding:80px 20px">
-      <span class="spinner spinner-dark" style="width:28px;height:28px"></span>
-      <p style="margin-top:12px;color:var(--muted);font-size:.875rem">Loading interviews...</p>
+      <span class="spinner spinner-dark" style="width:28px;height:28px;border-top-color:var(--accent)"></span>
+      <p style="margin-top:14px;color:var(--ink-soft);font-size:.875rem">Loading interviews...</p>
     </div>
   </div>
 
@@ -496,21 +637,26 @@
 <div class="modal-overlay" id="book-modal">
   <div class="book-modal">
     <div class="book-modal-header">
-      <div>
+      <div class="modal-header-info">
+        <div class="modal-company-tag" id="modal-company-tag">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+          Company
+        </div>
         <h3 id="modal-role">Book Interview Slot</h3>
-        <p id="modal-company">Select your preferred time slot below</p>
+        <div class="modal-meta-row" id="modal-meta-row"></div>
       </div>
       <button class="modal-close-btn" onclick="closeModal()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>
     <div class="book-modal-body">
       <div id="modal-alert"></div>
-      <p style="font-size:.825rem;font-weight:600;color:var(--text-mid)">Available Time Slots</p>
+      <p class="slots-section-label">Available Time Slots — Pick One</p>
       <div class="slot-pick-grid" id="slot-pick-grid"></div>
     </div>
     <div class="book-modal-footer">
-      <button class="btn btn-primary" id="confirm-btn" onclick="confirmBooking()" style="flex:1">
+      <button class="btn btn-primary" id="confirm-btn" onclick="confirmBooking()" style="flex:1;justify-content:center">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
         Confirm Booking
       </button>
       <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
@@ -530,15 +676,28 @@
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/></svg>
       AI Mock
     </button>
-    <span style="color:rgba(255,255,255,.7);font-size:.825rem;font-weight:500">Hi, ${user?.name?.split(' ')[0]}</span>
+    <span style="color:var(--ink-soft);font-size:.825rem;padding:0 4px">Hi, ${user?.name?.split(' ')[0]}</span>
     <button class="nav-btn filled" onclick="Auth.logout()">Logout</button>
   `;
 
-  let allInterviews  = [];
-  let activeBooking  = null;
-  let selectedSlotId = null;
+  let allInterviews    = [];
+  let activeBooking    = null;
+  let selectedSlotId   = null;
   let currentInterview = null;
-  let currentFilter  = 'all';
+  let currentFilter    = 'all';
+
+  // Helper: get initials for company logo
+  function initials(name) {
+    return (name || '?').split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+  }
+
+  // Helper: format date nicely
+  function fmtDate(d) {
+    if (!d) return '—';
+    try {
+      return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    } catch { return d; }
+  }
 
   async function load() {
     try {
@@ -555,13 +714,13 @@
       if (activeBooking) {
         document.getElementById('active-banner').style.display = 'flex';
         document.getElementById('banner-text').innerHTML =
-          `You have an active booking: <strong>${activeBooking.role}</strong> at <strong>${activeBooking.company_name}</strong> on ${activeBooking.interview_date}. Cancel it to book a new slot.`;
+          `You have an active booking: <strong>${activeBooking.role}</strong> at <strong>${activeBooking.company_name}</strong> on ${fmtDate(activeBooking.interview_date)}. Cancel it to book a new slot.`;
       }
 
       renderGrid(interviews);
     } catch (err) {
       document.getElementById('interviews-grid').innerHTML =
-        `<div class="alert alert-error">${err.message}</div>`;
+        `<div class="alert alert-error" style="margin:0">${err.message}</div>`;
     }
   }
 
@@ -578,7 +737,7 @@
     const weekEnd = new Date();
     weekEnd.setDate(weekEnd.getDate() + 7);
 
-    let list = allInterviews.filter(i => {
+    const list = allInterviews.filter(i => {
       const matchQ = !q ||
         i.role.toLowerCase().includes(q) ||
         i.company_name.toLowerCase().includes(q) ||
@@ -598,16 +757,18 @@
     const grid  = document.getElementById('interviews-grid');
     const count = document.getElementById('results-count');
 
-    count.innerHTML = `<span>${list.length}</span> interview${list.length !== 1 ? 's' : ''} found`;
+    count.innerHTML = `<strong>${list.length}</strong> interview${list.length !== 1 ? 's' : ''} found`;
 
     if (!list.length) {
       grid.innerHTML = `
-        <div class="empty-wrap">
-          <div class="empty-icon-wrap">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <div class="interviews-grid">
+          <div class="empty-wrap">
+            <div class="empty-icon-wrap">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--ink-faint)" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
+            <h3>No interviews found</h3>
+            <p>Try adjusting your search or check back later for new opportunities</p>
           </div>
-          <h3>No interviews found</h3>
-          <p>Try adjusting your search or check back later for new opportunities</p>
         </div>`;
       return;
     }
@@ -619,89 +780,153 @@
     const available = (i.slots || []).filter(s => s.booked_count < s.total_capacity);
     const isFull    = available.length === 0;
     const isBooked  = activeBooking && activeBooking.interview_id === i.id;
-    const delay     = idx * 0.05;
+    const delay     = Math.min(idx * 0.05, 0.4);
+
+    const logoLetters = initials(i.company_name);
 
     return `
       <div class="icard" style="animation-delay:${delay}s">
+
+        <!-- Header: company + role + tags -->
         <div class="icard-header">
-          <div class="icard-company">
-            <span class="company-dot"></span>
-            ${i.company_name}
+          <div class="icard-company-row">
+            <div class="company-logo">${logoLetters}</div>
+            <div class="company-info">
+              <div class="company-name">${i.company_name}</div>
+              <div class="company-status">
+                <span class="status-dot"></span>
+                Actively Hiring
+              </div>
+            </div>
           </div>
+
           <div class="icard-role">${i.role}</div>
+
           <div class="icard-tags">
-            <span class="itag">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <span class="itag itag-accent">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
               ${i.package}
             </span>
+            ${i.location ? `
             <span class="itag">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-              ${i.interview_date}
-            </span>
-            ${i.location ? `<span class="itag">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
               ${i.location}
             </span>` : ''}
           </div>
         </div>
 
+        <!-- Body: key info grid + description -->
         <div class="icard-body">
-          <p class="icard-desc">${i.job_description || 'No description provided.'}</p>
-          <div class="icard-meta">
-            <div class="icard-meta-item">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-              <span>${i.candidates_required} candidates needed</span>
+          <div class="icard-info-grid">
+            <div class="info-item">
+              <div class="info-icon">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              </div>
+              <div class="info-text">
+                <div class="info-label">Interview Date</div>
+                <div class="info-value">${fmtDate(i.interview_date)}</div>
+              </div>
             </div>
-            <div class="icard-meta-item">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              <span>${i.slots?.length || 0} slots · ${available.length} open</span>
+            <div class="info-item">
+              <div class="info-icon">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+              </div>
+              <div class="info-text">
+                <div class="info-label">Candidates Needed</div>
+                <div class="info-value">${i.candidates_required} positions</div>
+              </div>
             </div>
+            <div class="info-item">
+              <div class="info-icon">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
+              <div class="info-text">
+                <div class="info-label">Time Slots</div>
+                <div class="info-value">${i.slots?.length || 0} slots · ${available.length} open</div>
+              </div>
+            </div>
+            ${i.location ? `
+            <div class="info-item">
+              <div class="info-icon">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              </div>
+              <div class="info-text">
+                <div class="info-label">Location</div>
+                <div class="info-value">${i.location}</div>
+              </div>
+            </div>` : ''}
           </div>
+
+          ${i.job_description ? `<p class="icard-desc">${i.job_description}</p>` : ''}
         </div>
 
+        <!-- Footer: slots status + action -->
         <div class="icard-footer">
-          ${isBooked
-            ? `<span style="display:flex;align-items:center;gap:6px;font-size:.775rem;font-weight:600;color:var(--success)">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-                Slot Booked
-               </span>
-               <button class="btn btn-ghost btn-sm" onclick="location.href='dashboard.html'">
-                 View Booking
-               </button>`
-            : isFull
-            ? `<span class="slots-full">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-                All slots filled
-               </span>
-               <button class="btn btn-ghost btn-sm" disabled style="opacity:.5;cursor:not-allowed">Fully Booked</button>`
-            : `<span class="slots-available">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="20 6 9 17 4 12"/></svg>
-                ${available.length} slot${available.length > 1 ? 's' : ''} available
-               </span>
-               <button class="btn btn-primary btn-sm" onclick='openModal(${JSON.stringify(i).replace(/'/g,"&#39;")})'>
-                Book Slot
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-               </button>`
-          }
+          ${isBooked ? `
+            <span class="slots-badge booked">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Slot Booked
+            </span>
+            <button class="btn btn-secondary btn-sm" onclick="location.href='dashboard.html'">View Booking</button>
+          ` : isFull ? `
+            <span class="slots-badge full">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+              All slots filled
+            </span>
+            <button class="btn btn-ghost btn-sm" disabled style="opacity:.45;cursor:not-allowed">Fully Booked</button>
+          ` : `
+            <span class="slots-badge open">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="20 6 9 17 4 12"/></svg>
+              ${available.length} slot${available.length > 1 ? 's' : ''} open
+            </span>
+            <button class="btn btn-primary btn-sm" onclick='openModal(${JSON.stringify(i).replace(/'/g,"&#39;")})'>
+              Book Slot
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
+          `}
         </div>
       </div>`;
   }
+
   function openModal(interview) {
     currentInterview = interview;
     selectedSlotId   = null;
 
-    document.getElementById('modal-role').textContent    = interview.role;
-    document.getElementById('modal-company').textContent = interview.company_name;
-    document.getElementById('modal-alert').innerHTML     = '';
+    // Company tag
+    document.getElementById('modal-company-tag').innerHTML = `
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+      ${interview.company_name}
+    `;
+
+    document.getElementById('modal-role').textContent = interview.role;
+    document.getElementById('modal-alert').innerHTML  = '';
+
+    // Meta chips: date, location, package
+    document.getElementById('modal-meta-row').innerHTML = `
+      <div class="modal-meta-chip">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        ${fmtDate(interview.interview_date)}
+      </div>
+      ${interview.location ? `
+      <div class="modal-meta-chip">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        ${interview.location}
+      </div>` : ''}
+      <div class="modal-meta-chip">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        ${interview.package}
+      </div>
+    `;
 
     const available = (interview.slots || []).filter(s => s.booked_count < s.total_capacity);
 
-    document.getElementById('slot-pick-grid').innerHTML = available.map(s => `
-      <div class="slot-pick" onclick="selectSlot(this, ${s.id})" data-id="${s.id}">
-        <span class="slot-time">${s.slot_time}</span>
-        <span class="slot-cap">${s.total_capacity - s.booked_count} spots left</span>
-      </div>
-    `).join('');
+    document.getElementById('slot-pick-grid').innerHTML = available.length
+      ? available.map(s => `
+          <div class="slot-pick" onclick="selectSlot(this, ${s.id})" data-id="${s.id}">
+            <span class="slot-time">${s.slot_time}</span>
+            <span class="slot-cap">${s.total_capacity - s.booked_count} spot${s.total_capacity - s.booked_count !== 1 ? 's' : ''} left</span>
+          </div>`).join('')
+      : `<p style="color:var(--ink-soft);font-size:.85rem;grid-column:1/-1">No available slots.</p>`;
 
     document.getElementById('book-modal').classList.add('active');
   }
@@ -722,7 +947,7 @@
       return;
     }
     if (activeBooking) {
-      showAlert(document.getElementById('modal-alert'), 'Cancel your current active booking first');
+      showAlert(document.getElementById('modal-alert'), 'Cancel your current active booking first to book a new slot');
       return;
     }
 
@@ -731,9 +956,7 @@
     try {
       await Api.book({ interview_id: currentInterview.id, slot_id: selectedSlotId });
       closeModal();
-
-      // Show success toast
-      showToast('Booking confirmed! Check your email for details.');
+      showToast('🎉 Booking confirmed! Check your email for details.');
       load();
     } catch (err) {
       showAlert(document.getElementById('modal-alert'), err.message);
@@ -741,47 +964,39 @@
       setLoading(btn, false);
     }
   }
-  // Close modal on overlay click
+
   document.getElementById('book-modal').addEventListener('click', function(e) {
     if (e.target === this) closeModal();
   });
-function showToast(message) {
+
+  function showToast(message) {
     const existing = document.getElementById('toast');
     if (existing) existing.remove();
 
     const toast = document.createElement('div');
     toast.id = 'toast';
-    toast.style.cssText = `
-      position: fixed;
-      bottom: 32px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #065f46;
-      color: #fff;
-      padding: 14px 24px;
-      border-radius: 10px;
-      font-size: .875rem;
-      font-weight: 600;
-      font-family: var(--font);
-      box-shadow: 0 8px 24px rgba(0,0,0,.2);
-      z-index: 9999;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      animation: slideUp .3s ease;
-    `;
-    toast.innerHTML = `
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-      ${message}
-    `;
+    Object.assign(toast.style, {
+      position: 'fixed', bottom: '32px', left: '50%',
+      transform: 'translateX(-50%)',
+      background: 'var(--success)', color: '#fff',
+      padding: '14px 24px', borderRadius: 'var(--r-sm)',
+      fontSize: '.875rem', fontWeight: '600',
+      fontFamily: 'var(--font)',
+      boxShadow: 'var(--shadow-lg)',
+      zIndex: '9999', display: 'flex', alignItems: 'center', gap: '8px',
+      whiteSpace: 'nowrap',
+      animation: 'toastIn .3s cubic-bezier(.34,1.56,.64,1)',
+    });
+    toast.textContent = message;
     document.body.appendChild(toast);
 
     const style = document.createElement('style');
-    style.textContent = `@keyframes slideUp { from { opacity:0; transform:translateX(-50%) translateY(20px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }`;
+    style.textContent = `@keyframes toastIn { from { opacity:0; transform:translateX(-50%) translateY(20px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }`;
     document.head.appendChild(style);
 
     setTimeout(() => toast.remove(), 4000);
   }
+
   load();
 </script>
 </body>

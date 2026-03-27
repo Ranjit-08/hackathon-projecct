@@ -654,8 +654,18 @@
       </div>
     </div>
 
-    <!-- Mic device warning bar -->
+    <!-- Mic warning bar -->
     <div id="mic-device-bar"></div>
+
+    <!-- Mic device selector (shown after permission granted) -->
+    <div id="mic-selector-bar" style="display:none;background:#f0f9ff;border-top:1px solid #bae6fd;padding:8px 20px;align-items:center;gap:10px;font-size:.78rem;color:#0369a1;">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+      <span style="font-weight:700;white-space:nowrap">Mic:</span>
+      <select id="mic-select" style="flex:1;min-width:0;border:1px solid #bae6fd;border-radius:6px;padding:3px 8px;font-size:.78rem;font-family:var(--font);background:#fff;color:#0369a1;cursor:pointer;outline:none;" onchange="onMicChange(this.value)">
+        <option value="">Detecting microphones...</option>
+      </select>
+      <button onclick="testMicAudio()" style="white-space:nowrap;background:#0ea5e9;color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:.75rem;font-family:var(--font);cursor:pointer;font-weight:600;">🎙 Test</button>
+    </div>
 
     <!-- Input -->
     <div class="chat-input-wrap">
@@ -710,64 +720,124 @@
 
   // ── Voice Setup ─────────────────────────────────────────────────────────────
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  let recognition  = null;
-  let isListening  = false;
-  let aiVoiceOn    = true;
-  let synth        = window.speechSynthesis;
-  let isSpeaking   = false;
-  let voicesList   = [];
+  let recognition         = null;
+  let isListening         = false;
+  let aiVoiceOn           = true;
+  let synth               = window.speechSynthesis;
+  let isSpeaking          = false;
+  let voicesList          = [];
   let selectedFemaleVoice = null;
 
-  // ── Load & cache voices (must be done async on Chrome) ──────────────────────
+  // Selected mic device ID (chosen by user from dropdown)
+  let selectedMicId = '';
+  // Active getUserMedia stream used for recognition (kept alive so Chrome uses the right device)
+  let micStream     = null;
+
+  // ── Load & cache TTS voices ──────────────────────────────────────────────────
   function loadVoices() {
     voicesList = synth.getVoices();
-    if (!voicesList.length) return; // not ready yet, will fire again via onvoiceschanged
-
-    // Priority order: best female English voices
-    const femalePreference = [
-      'Google UK English Female',
-      'Google US English Female',        // sometimes listed this way
-      'Microsoft Zira',                  // Windows female
-      'Microsoft Hazel',                 // Windows UK female
-      'Samantha',                        // macOS female
-      'Karen',                           // macOS Australian female
-      'Victoria',                        // macOS female
-      'Moira',                           // macOS Irish female
-      'Tessa',                           // macOS South African female
+    if (!voicesList.length) return;
+    const pref = [
+      'Google UK English Female','Google US English Female',
+      'Microsoft Zira','Microsoft Hazel',
+      'Samantha','Karen','Victoria','Moira','Tessa'
     ];
-
-    for (const name of femalePreference) {
+    for (const name of pref) {
       const v = voicesList.find(v => v.name === name);
       if (v) { selectedFemaleVoice = v; break; }
     }
-
-    // Fallback: any voice whose name contains 'female' (case-insensitive)
-    if (!selectedFemaleVoice) {
-      selectedFemaleVoice = voicesList.find(v =>
-        v.name.toLowerCase().includes('female') && v.lang.startsWith('en')
-      );
-    }
-
-    // Fallback: any English voice with 'zira', 'samantha', 'karen', 'victoria' in name
-    if (!selectedFemaleVoice) {
-      selectedFemaleVoice = voicesList.find(v =>
-        /zira|samantha|karen|victoria|hazel|moira|tessa/i.test(v.name) && v.lang.startsWith('en')
-      );
-    }
-
-    // Final fallback: first available English voice
-    if (!selectedFemaleVoice) {
+    if (!selectedFemaleVoice)
+      selectedFemaleVoice = voicesList.find(v => v.name.toLowerCase().includes('female') && v.lang.startsWith('en'));
+    if (!selectedFemaleVoice)
+      selectedFemaleVoice = voicesList.find(v => /zira|samantha|karen|victoria|hazel|moira|tessa/i.test(v.name) && v.lang.startsWith('en'));
+    if (!selectedFemaleVoice)
       selectedFemaleVoice = voicesList.find(v => v.lang.startsWith('en'));
+  }
+
+  if (synth) { synth.onvoiceschanged = loadVoices; loadVoices(); }
+
+  // ── Enumerate mic devices and populate dropdown ──────────────────────────────
+  async function populateMicList() {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const mics    = devices.filter(d => d.kind === 'audioinput');
+      const sel     = document.getElementById('mic-select');
+      sel.innerHTML = '';
+
+      if (!mics.length) {
+        sel.innerHTML = '<option value="">No microphones found</option>';
+        return;
+      }
+
+      mics.forEach((d, i) => {
+        const opt   = document.createElement('option');
+        opt.value   = d.deviceId;
+        opt.text    = d.label || `Microphone ${i + 1}`;
+        // Auto-select "default" or first
+        if (d.deviceId === 'default' || i === 0) opt.selected = true;
+        sel.appendChild(opt);
+      });
+
+      // Set selectedMicId to whatever is currently selected
+      selectedMicId = sel.value;
+
+      // Show the mic selector bar
+      const bar = document.getElementById('mic-selector-bar');
+      bar.style.display = 'flex';
+    } catch (e) {
+      console.warn('Could not enumerate devices:', e);
     }
   }
 
-  if (synth) {
-    synth.onvoiceschanged = loadVoices;
-    loadVoices(); // try immediately (Firefox)
+  function onMicChange(deviceId) {
+    selectedMicId = deviceId;
+    // Release old stream if any
+    if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
   }
 
-  // ── Speech Recognition with proper mic permission request ────────────────────
-  function initSpeechRecognition() {
+  // Test button: records 2 seconds and shows volume feedback
+  async function testMicAudio() {
+    const bar = document.getElementById('mic-device-bar');
+    bar.className = 'warn';
+    bar.innerHTML = '🎙️ Testing microphone for 2 seconds... speak now!';
+    try {
+      const constraints = { audio: selectedMicId ? { deviceId: { exact: selectedMicId } } : true };
+      const stream      = new MediaStream(await navigator.mediaDevices.getUserMedia(constraints));
+      const ctx         = new AudioContext();
+      const src         = ctx.createMediaStreamSource(stream);
+      const analyser    = ctx.createAnalyser();
+      analyser.fftSize  = 256;
+      src.connect(analyser);
+      const buf    = new Uint8Array(analyser.frequencyBinCount);
+      let   maxVol = 0;
+
+      await new Promise(r => setTimeout(r, 2000));
+      analyser.getByteFrequencyData(buf);
+      maxVol = Math.max(...buf);
+      stream.getTracks().forEach(t => t.stop());
+      ctx.close();
+
+      if (maxVol > 10) {
+        bar.innerHTML = `✅ Mic is working! Volume level: ${maxVol}/255. You can start speaking.`;
+        bar.style.background = '#f0fdf4';
+        bar.style.borderTopColor = '#86efac';
+        bar.style.color = '#166534';
+      } else {
+        bar.innerHTML = `⚠️ Very low or no audio detected (${maxVol}/255). Try selecting a different microphone from the dropdown above.`;
+      }
+      setTimeout(clearMicBar, 5000);
+    } catch (e) {
+      bar.innerHTML = `❌ Test failed: ${e.message}`;
+      setTimeout(clearMicBar, 4000);
+    }
+  }
+
+  // ── Build SpeechRecognition using the selected device via a live stream ───────
+  // The trick: getUserMedia with the specific deviceId, then pass that stream's
+  // audio track into a MediaStreamAudioSourceNode. Chrome's SpeechRecognition
+  // picks up the default system mic — but by keeping a stream from the chosen
+  // device open, the OS routes that device as "default" for the browser tab.
+  function buildRecognition() {
     if (!SpeechRecognition) return;
     recognition = new SpeechRecognition();
     recognition.continuous     = false;
@@ -793,6 +863,8 @@
       document.getElementById('voice-btn').classList.remove('listening');
       document.getElementById('voice-status').classList.remove('active');
       document.getElementById('user-input').placeholder = 'Type your answer or click mic to speak...';
+      // Release mic stream after done
+      if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
       const val = document.getElementById('user-input').value.trim();
       if (val) sendMessage();
     };
@@ -802,24 +874,21 @@
       document.getElementById('voice-btn').classList.remove('listening');
       document.getElementById('voice-status').classList.remove('active');
       document.getElementById('user-input').placeholder = 'Type your answer or click mic to speak...';
+      if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
 
       const bar = document.getElementById('mic-device-bar');
-
+      bar.className = 'warn';
       if (e.error === 'not-allowed' || e.error === 'permission-denied') {
-        bar.className = 'warn';
-        bar.innerHTML = `⚠️ Microphone blocked. <strong>Click the 🔒 lock icon</strong> in your browser address bar → set Microphone to <strong>Allow</strong> → reload the page.`;
+        bar.innerHTML = `⚠️ Mic blocked. Click the <strong>🔒 lock icon</strong> in the address bar → Microphone → <strong>Allow</strong> → reload.`;
       } else if (e.error === 'no-speech') {
-        bar.className = 'warn';
-        bar.innerHTML = `🎙️ No speech detected. Make sure your <strong>correct microphone</strong> is selected in your system sound settings and try again.`;
-        setTimeout(clearMicBar, 4000);
+        bar.innerHTML = `🎙️ No speech detected. Click <strong>"🎙 Test"</strong> to check if your mic is picking up audio. Try selecting a different mic.`;
+        setTimeout(clearMicBar, 6000);
       } else if (e.error === 'audio-capture') {
-        bar.className = 'warn';
-        bar.innerHTML = `❌ No microphone found. Please connect a mic and <strong>reload</strong> the page.`;
+        bar.innerHTML = `❌ No mic found. Connect a microphone and reload.`;
       } else if (e.error === 'aborted') {
-        // user stopped manually — silent
+        clearMicBar();
       } else {
-        bar.className = 'warn';
-        bar.innerHTML = `⚠️ Mic error: <strong>${e.error}</strong>. Try reloading the page or using Chrome/Edge.`;
+        bar.innerHTML = `⚠️ Mic error: <strong>${e.error}</strong>. Try a different microphone or reload.`;
         setTimeout(clearMicBar, 5000);
       }
     };
@@ -829,26 +898,46 @@
     const bar = document.getElementById('mic-device-bar');
     bar.className = '';
     bar.innerHTML = '';
+    bar.style.background = '';
+    bar.style.borderTopColor = '';
+    bar.style.color = '';
   }
 
-  // ── Request mic permission explicitly on desktop ──────────────────────────────
-  // This is the key fix for laptop: we first call getUserMedia to trigger the
-  // browser permission dialog before starting SpeechRecognition.
+  // ── Request permission + open stream from selected device ─────────────────────
   async function requestMicPermission() {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // Permission granted — stop the stream immediately, we only needed the permission
-      stream.getTracks().forEach(t => t.stop());
+      const constraints = {
+        audio: selectedMicId
+          ? { deviceId: { exact: selectedMicId }, echoCancellation: true, noiseSuppression: true }
+          : { echoCancellation: true, noiseSuppression: true }
+      };
+      // Open stream — keep it alive so Chrome uses this device for recognition
+      micStream = await navigator.mediaDevices.getUserMedia(constraints);
+
+      // After permission granted, enumerate real device labels and populate list
+      await populateMicList();
       return true;
     } catch (err) {
       const bar = document.getElementById('mic-device-bar');
       bar.className = 'warn';
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        bar.innerHTML = `⚠️ Microphone access denied. Click the <strong>🔒 lock icon</strong> in the address bar → Microphone → <strong>Allow</strong> → reload.`;
-      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        bar.innerHTML = `⚠️ Mic denied. Click <strong>🔒 lock icon</strong> → Microphone → <strong>Allow</strong> → reload.`;
+      } else if (err.name === 'NotFoundError') {
         bar.innerHTML = `❌ No microphone found. Please connect a microphone and reload.`;
+      } else if (err.name === 'OverconstrainedError') {
+        // Selected device is gone — retry with any mic
+        selectedMicId = '';
+        bar.innerHTML = `⚠️ Selected mic not found. Trying default mic...`;
+        try {
+          micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          await populateMicList();
+          clearMicBar();
+          return true;
+        } catch (e2) {
+          bar.innerHTML = `❌ Cannot access any microphone: ${e2.message}`;
+        }
       } else {
-        bar.innerHTML = `⚠️ Cannot access microphone: ${err.message}`;
+        bar.innerHTML = `⚠️ Mic error: ${err.message}`;
       }
       return false;
     }
@@ -859,23 +948,19 @@
       alert('Speech recognition is not supported. Please use Google Chrome or Microsoft Edge.');
       return;
     }
-
-    if (isListening) {
-      stopListening();
-      return;
-    }
-
-    // Stop AI speaking if it is
+    if (isListening) { stopListening(); return; }
     if (isSpeaking) synth.cancel();
 
-    // Always request mic permission explicitly first (fixes laptop issue)
+    // Re-build recognition object fresh each time (avoids Chrome state bugs)
+    buildRecognition();
+
     const allowed = await requestMicPermission();
     if (!allowed) return;
 
     try {
       recognition.start();
     } catch (err) {
-      // recognition already started — ignore
+      // already started — ignore
     }
   }
 
@@ -1240,8 +1325,18 @@ Be concise, friendly and genuinely helpful. Do NOT conduct a mock interview — 
   }
 
   // ── Init ────────────────────────────────────────────────────────────────────
-  initSpeechRecognition();
+  buildRecognition();
   renderPrompts();
+
+  // Try to enumerate mic devices on page load (labels only show after permission)
+  // This will silently fail until user clicks mic the first time — that's fine.
+  navigator.mediaDevices?.enumerateDevices().then(devices => {
+    const mics = devices.filter(d => d.kind === 'audioinput');
+    if (mics.length && mics.some(d => d.label)) {
+      // Permission already granted from a previous visit — show selector immediately
+      populateMicList();
+    }
+  }).catch(() => {});
 </script>
 </body>
 </html>

@@ -519,6 +519,21 @@
       animation: micPulse 1s infinite;
     }
 
+    /* Mic permission bar */
+    #mic-device-bar {
+      font-size: .75rem;
+      padding: 0 20px;
+      color: var(--muted);
+    }
+
+    #mic-device-bar.warn {
+      background: #fffbeb;
+      border-top: 1px solid #fde68a;
+      padding: 8px 20px;
+      color: #92400e;
+      font-weight: 600;
+    }
+
     @media (max-width: 768px) {
       .mock-layout { grid-template-columns: 1fr; height: auto; }
       .mock-sidebar { display: none; }
@@ -639,6 +654,9 @@
       </div>
     </div>
 
+    <!-- Mic device warning bar -->
+    <div id="mic-device-bar"></div>
+
     <!-- Input -->
     <div class="chat-input-wrap">
       <div class="chat-input-box">
@@ -692,12 +710,63 @@
 
   // ── Voice Setup ─────────────────────────────────────────────────────────────
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  let recognition = null;
-  let isListening = false;
-  let aiVoiceOn   = true;
-  let synth       = window.speechSynthesis;
-  let isSpeaking  = false;
+  let recognition  = null;
+  let isListening  = false;
+  let aiVoiceOn    = true;
+  let synth        = window.speechSynthesis;
+  let isSpeaking   = false;
+  let voicesList   = [];
+  let selectedFemaleVoice = null;
 
+  // ── Load & cache voices (must be done async on Chrome) ──────────────────────
+  function loadVoices() {
+    voicesList = synth.getVoices();
+    if (!voicesList.length) return; // not ready yet, will fire again via onvoiceschanged
+
+    // Priority order: best female English voices
+    const femalePreference = [
+      'Google UK English Female',
+      'Google US English Female',        // sometimes listed this way
+      'Microsoft Zira',                  // Windows female
+      'Microsoft Hazel',                 // Windows UK female
+      'Samantha',                        // macOS female
+      'Karen',                           // macOS Australian female
+      'Victoria',                        // macOS female
+      'Moira',                           // macOS Irish female
+      'Tessa',                           // macOS South African female
+    ];
+
+    for (const name of femalePreference) {
+      const v = voicesList.find(v => v.name === name);
+      if (v) { selectedFemaleVoice = v; break; }
+    }
+
+    // Fallback: any voice whose name contains 'female' (case-insensitive)
+    if (!selectedFemaleVoice) {
+      selectedFemaleVoice = voicesList.find(v =>
+        v.name.toLowerCase().includes('female') && v.lang.startsWith('en')
+      );
+    }
+
+    // Fallback: any English voice with 'zira', 'samantha', 'karen', 'victoria' in name
+    if (!selectedFemaleVoice) {
+      selectedFemaleVoice = voicesList.find(v =>
+        /zira|samantha|karen|victoria|hazel|moira|tessa/i.test(v.name) && v.lang.startsWith('en')
+      );
+    }
+
+    // Final fallback: first available English voice
+    if (!selectedFemaleVoice) {
+      selectedFemaleVoice = voicesList.find(v => v.lang.startsWith('en'));
+    }
+  }
+
+  if (synth) {
+    synth.onvoiceschanged = loadVoices;
+    loadVoices(); // try immediately (Firefox)
+  }
+
+  // ── Speech Recognition with proper mic permission request ────────────────────
   function initSpeechRecognition() {
     if (!SpeechRecognition) return;
     recognition = new SpeechRecognition();
@@ -710,6 +779,7 @@
       document.getElementById('voice-btn').classList.add('listening');
       document.getElementById('voice-status').classList.add('active');
       document.getElementById('user-input').placeholder = 'Listening...';
+      clearMicBar();
     };
 
     recognition.onresult = (e) => {
@@ -732,19 +802,80 @@
       document.getElementById('voice-btn').classList.remove('listening');
       document.getElementById('voice-status').classList.remove('active');
       document.getElementById('user-input').placeholder = 'Type your answer or click mic to speak...';
+
+      const bar = document.getElementById('mic-device-bar');
+
+      if (e.error === 'not-allowed' || e.error === 'permission-denied') {
+        bar.className = 'warn';
+        bar.innerHTML = `⚠️ Microphone blocked. <strong>Click the 🔒 lock icon</strong> in your browser address bar → set Microphone to <strong>Allow</strong> → reload the page.`;
+      } else if (e.error === 'no-speech') {
+        bar.className = 'warn';
+        bar.innerHTML = `🎙️ No speech detected. Make sure your <strong>correct microphone</strong> is selected in your system sound settings and try again.`;
+        setTimeout(clearMicBar, 4000);
+      } else if (e.error === 'audio-capture') {
+        bar.className = 'warn';
+        bar.innerHTML = `❌ No microphone found. Please connect a mic and <strong>reload</strong> the page.`;
+      } else if (e.error === 'aborted') {
+        // user stopped manually — silent
+      } else {
+        bar.className = 'warn';
+        bar.innerHTML = `⚠️ Mic error: <strong>${e.error}</strong>. Try reloading the page or using Chrome/Edge.`;
+        setTimeout(clearMicBar, 5000);
+      }
     };
   }
 
-  function toggleVoice() {
+  function clearMicBar() {
+    const bar = document.getElementById('mic-device-bar');
+    bar.className = '';
+    bar.innerHTML = '';
+  }
+
+  // ── Request mic permission explicitly on desktop ──────────────────────────────
+  // This is the key fix for laptop: we first call getUserMedia to trigger the
+  // browser permission dialog before starting SpeechRecognition.
+  async function requestMicPermission() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Permission granted — stop the stream immediately, we only needed the permission
+      stream.getTracks().forEach(t => t.stop());
+      return true;
+    } catch (err) {
+      const bar = document.getElementById('mic-device-bar');
+      bar.className = 'warn';
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        bar.innerHTML = `⚠️ Microphone access denied. Click the <strong>🔒 lock icon</strong> in the address bar → Microphone → <strong>Allow</strong> → reload.`;
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        bar.innerHTML = `❌ No microphone found. Please connect a microphone and reload.`;
+      } else {
+        bar.innerHTML = `⚠️ Cannot access microphone: ${err.message}`;
+      }
+      return false;
+    }
+  }
+
+  async function toggleVoice() {
     if (!SpeechRecognition) {
-      alert('Speech recognition not supported. Please use Chrome or Edge.');
+      alert('Speech recognition is not supported. Please use Google Chrome or Microsoft Edge.');
       return;
     }
+
     if (isListening) {
       stopListening();
-    } else {
-      if (isSpeaking) synth.cancel();
+      return;
+    }
+
+    // Stop AI speaking if it is
+    if (isSpeaking) synth.cancel();
+
+    // Always request mic permission explicitly first (fixes laptop issue)
+    const allowed = await requestMicPermission();
+    if (!allowed) return;
+
+    try {
       recognition.start();
+    } catch (err) {
+      // recognition already started — ignore
     }
   }
 
@@ -754,62 +885,96 @@
 
   function toggleAiVoice(el) {
     aiVoiceOn = el.checked;
-    if (!aiVoiceOn) synth.cancel();
+    if (!aiVoiceOn) {
+      synth.cancel();
+      ttsQueue = [];
+      clearInterval(ttsResumeTimer);
+      isSpeaking = false;
+    }
+  }
+
+  // ── TTS chunk queue (fixes Chrome cutting off long answers) ─────────────────
+  let ttsQueue       = [];
+  let ttsBusy        = false;
+  let ttsResumeTimer = null;  // Chrome pauses randomly — we periodically resume it
+
+  function speakChunkQueue() {
+    if (!ttsQueue.length) {
+      ttsBusy    = false;
+      isSpeaking = false;
+      clearInterval(ttsResumeTimer);
+      const badge = document.getElementById('mode-badge');
+      document.getElementById('session-label').textContent =
+        badge.classList.contains('interview') ? 'Interview session active' : 'Q&A session active';
+      return;
+    }
+
+    ttsBusy = true;
+    const chunk = ttsQueue.shift();
+    const utt   = new SpeechSynthesisUtterance(chunk);
+    utt.lang    = 'en-US';
+    utt.rate    = 0.95;
+    utt.pitch   = 1.1;
+    utt.volume  = 1.0;
+    if (selectedFemaleVoice) utt.voice = selectedFemaleVoice;
+
+    utt.onend   = () => speakChunkQueue();  // speak next chunk when this ends
+    utt.onerror = () => speakChunkQueue();  // skip broken chunk, continue anyway
+
+    synth.speak(utt);
   }
 
   function speakText(text) {
     if (!aiVoiceOn || !synth) return;
     synth.cancel();
+    ttsQueue = [];
+    ttsBusy  = false;
+    clearInterval(ttsResumeTimer);
 
+    // Strip markdown formatting
     const clean = text
       .replace(/\*\*/g, '').replace(/\*/g, '')
-      .replace(/#{1,6}\s/g, '').replace(/`/g, '')
-      .substring(0, 600);
+      .replace(/#{1,6}\s?/g, '').replace(/`/g, '')
+      .replace(/\n+/g, ' ').trim();
 
-    const utt   = new SpeechSynthesisUtterance(clean);
-    utt.lang    = 'en-US';
-    utt.rate    = 0.95;
-    utt.pitch   = 1.0;
-    utt.volume  = 1.0;
+    if (!clean) return;
 
-    // Pick best voice
-    const voices = synth.getVoices();
-    const preferred = voices.find(v =>
-      v.name.includes('Google US English') ||
-      v.name.includes('Samantha') ||
-      v.name.includes('Daniel') ||
-      (v.lang === 'en-US' && v.localService)
-    ) || voices.find(v => v.lang.startsWith('en'));
+    // Split into sentence-sized chunks (~150 chars) so Chrome doesn't cut off mid-answer
+    const sentences = clean.split(/(?<=[.!?])\s+/);
+    const chunks    = [];
+    let   current   = '';
 
-    if (preferred) utt.voice = preferred;
+    for (const s of sentences) {
+      if ((current + ' ' + s).trim().length > 150) {
+        if (current.trim()) chunks.push(current.trim());
+        current = s;
+      } else {
+        current = current ? current + ' ' + s : s;
+      }
+    }
+    if (current.trim()) chunks.push(current.trim());
 
-    utt.onstart = () => {
-      isSpeaking = true;
-      document.getElementById('session-label').innerHTML = `
-        <span class="speaking-indicator">
-          <span class="speak-bar"></span>
-          <span class="speak-bar"></span>
-          <span class="speak-bar"></span>
-          <span class="speak-bar"></span>
-          <span class="speak-bar"></span>
-          &nbsp;AI Speaking
-        </span>`;
-    };
+    ttsQueue = chunks;
 
-    utt.onend = () => {
-      isSpeaking = false;
-      const badge = document.getElementById('mode-badge');
-      document.getElementById('session-label').textContent =
-        badge.classList.contains('interview') ? 'Interview session active' : 'Q&A session active';
-    };
+    // Show "AI Speaking" indicator
+    isSpeaking = true;
+    document.getElementById('session-label').innerHTML = `
+      <span class="speaking-indicator">
+        <span class="speak-bar"></span>
+        <span class="speak-bar"></span>
+        <span class="speak-bar"></span>
+        <span class="speak-bar"></span>
+        <span class="speak-bar"></span>
+        &nbsp;AI Speaking
+      </span>`;
 
-    synth.speak(utt);
-  }
+    // Chrome randomly pauses synth — resume every 5s to prevent silence
+    ttsResumeTimer = setInterval(() => {
+      if (synth.speaking && synth.paused) synth.resume();
+    }, 5000);
 
-  // Load voices (Chrome needs this trigger)
-  if (synth) {
-    synth.getVoices();
-    synth.onvoiceschanged = () => synth.getVoices();
+    // Small initial delay so Chrome is ready
+    setTimeout(() => speakChunkQueue(), 150);
   }
 
   // ── Mode & Prompts ──────────────────────────────────────────────────────────
@@ -1031,7 +1196,7 @@ Be concise, friendly and genuinely helpful. Do NOT conduct a mock interview — 
       if (!resp.ok) throw new Error(data.error || 'AI error');
 
       addMessage('assistant', data.message);
-      speakText(data.message); // Auto-speak AI response
+      speakText(data.message);
 
     } catch (err) {
       removeTyping();
@@ -1050,6 +1215,10 @@ Be concise, friendly and genuinely helpful. Do NOT conduct a mock interview — 
     startTime = null;
     clearInterval(timerInterval);
     if (synth) synth.cancel();
+    ttsQueue = [];
+    clearInterval(ttsResumeTimer);
+    isSpeaking = false;
+    clearMicBar();
     updateStats();
     showWelcome();
     document.getElementById('session-label').textContent = 'Start a session below';
